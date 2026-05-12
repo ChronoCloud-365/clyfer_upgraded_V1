@@ -52,6 +52,7 @@ export async function PUT(request: NextRequest) {
       .upsert({ key, value }, { onConflict: "key" });
 
     if (error) {
+      console.error("[SiteConfig PUT Error]:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -60,6 +61,7 @@ export async function PUT(request: NextRequest) {
     revalidatePath("/shop");
     return NextResponse.json({ ok: true });
   } catch (e: unknown) {
+    console.error("[SiteConfig PUT Exception]:", e);
     const msg = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
