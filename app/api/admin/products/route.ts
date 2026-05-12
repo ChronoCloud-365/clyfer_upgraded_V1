@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+
+function getAdminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function GET(request: NextRequest) {
   const category = request.nextUrl.searchParams.get("category");
@@ -27,18 +35,22 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
 
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const { data, error } = await supabase
       .from("products")
       .insert(body)
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("[Products POST Error]:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     revalidatePath("/shop");
     revalidatePath("/");
     return NextResponse.json({ product: data }, { status: 201 });
   } catch (e: unknown) {
+    console.error("[Products POST Exception]:", e);
     const msg = e instanceof Error ? e.message : "Unknown";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
