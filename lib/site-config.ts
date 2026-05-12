@@ -5,6 +5,7 @@ import type {
   FeaturedConfig,
   FooterConfig,
   ShippingConfig,
+  LegalConfig,
   SiteConfigKey,
 } from "@/types";
 
@@ -15,6 +16,7 @@ export {
   DEFAULT_FEATURED,
   DEFAULT_FOOTER,
   DEFAULT_SHIPPING,
+  DEFAULT_LEGAL,
 } from "@/lib/config-defaults";
 
 import {
@@ -23,6 +25,7 @@ import {
   DEFAULT_FEATURED,
   DEFAULT_FOOTER,
   DEFAULT_SHIPPING,
+  DEFAULT_LEGAL,
 } from "@/lib/config-defaults";
 
 const DEFAULTS = {
@@ -31,6 +34,9 @@ const DEFAULTS = {
   featured: DEFAULT_FEATURED,
   footer: DEFAULT_FOOTER,
   shipping: DEFAULT_SHIPPING,
+  terms: DEFAULT_LEGAL,
+  privacy: DEFAULT_LEGAL,
+  cookies: DEFAULT_LEGAL,
 } satisfies Record<SiteConfigKey, unknown>;
 
 // ── Server-side fetch helpers ─────────────────────────────────────
@@ -64,3 +70,12 @@ export const getFooterConfig = () =>
 
 export const getShippingConfig = () =>
   fetchConfig<ShippingConfig>("shipping", DEFAULT_SHIPPING);
+
+export const getTermsConfig = () =>
+  fetchConfig<LegalConfig>("terms", DEFAULT_LEGAL);
+
+export const getPrivacyConfig = () =>
+  fetchConfig<LegalConfig>("privacy", DEFAULT_LEGAL);
+
+export const getCookiesConfig = () =>
+  fetchConfig<LegalConfig>("cookies", DEFAULT_LEGAL);

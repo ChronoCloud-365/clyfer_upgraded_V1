@@ -7,6 +7,7 @@ import type {
   FeaturedConfig,
   FooterConfig,
   ShippingConfig,
+  LegalConfig,
 } from "@/types";
 
 export const DEFAULT_NAVBAR: NavbarConfig = {
@@ -31,5 +32,9 @@ export const DEFAULT_FOOTER: FooterConfig = {
 export const DEFAULT_SHIPPING: ShippingConfig = {
   insideDhaka: 80,
   outsideDhaka: 120,
+};
+
+export const DEFAULT_LEGAL: LegalConfig = {
+  content: "<h1>Content coming soon</h1><p>We are updating our policies.</p>",
 };
 

@@ -17,6 +17,7 @@ import {
   X,
   ChevronRight,
   Truck,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Shipping", href: "/admin/shipping", icon: Truck },
+  { label: "Legal Pages", href: "/admin/legal", icon: FileText },
 ];
 
 export function AdminSidebar() {
