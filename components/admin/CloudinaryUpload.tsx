@@ -50,7 +50,7 @@ export function CloudinaryUpload({
 
       {value.length < maxFiles && (
         <CldUploadWidget
-          uploadPreset="clyfer_preset" // Assumes you have an unsigned upload preset named 'clyfer_preset' in Cloudinary.
+          uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
           onSuccess={onUpload}
         >
           {({ open }) => {

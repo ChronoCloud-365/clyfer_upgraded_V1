@@ -6,6 +6,7 @@ import { Plus, Trash2, Save, ChevronDown, ChevronRight, Loader2, Image as ImageI
 import type { HeroConfig, HeroSlide } from "@/types";
 import { DEFAULT_HERO } from "@/lib/config-defaults";
 import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
+import { LinkPicker } from "@/components/admin/LinkPicker";
 
 function generateId() {
   return "slide-" + Math.random().toString(36).slice(2);
@@ -268,11 +269,9 @@ export default function AdminHeroPage() {
                         placeholder="Shop Now"
                       />
                       <label className="admin-label">Primary CTA Link</label>
-                      <input
+                      <LinkPicker
                         value={slide.ctaPrimary.href}
-                        onChange={(e) => updateSlide(slide.id, "ctaPrimary.href", e.target.value)}
-                        className="admin-input"
-                        placeholder="/shop"
+                        onChange={(val) => updateSlide(slide.id, "ctaPrimary.href", val)}
                       />
                     </div>
                     <div className="space-y-2">
@@ -284,11 +283,9 @@ export default function AdminHeroPage() {
                         placeholder="Explore"
                       />
                       <label className="admin-label">Secondary CTA Link</label>
-                      <input
+                      <LinkPicker
                         value={slide.ctaSecondary.href}
-                        onChange={(e) => updateSlide(slide.id, "ctaSecondary.href", e.target.value)}
-                        className="admin-input"
-                        placeholder="/shop/limited"
+                        onChange={(val) => updateSlide(slide.id, "ctaSecondary.href", val)}
                       />
                     </div>
                   </div>

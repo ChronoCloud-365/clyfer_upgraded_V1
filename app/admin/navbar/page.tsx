@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Plus, Trash2, Save, GripVertical, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import type { NavbarConfig, NavCategory, NavLink, NavSubcategory } from "@/types";
 import { DEFAULT_NAVBAR } from "@/lib/config-defaults";
+import { LinkPicker } from "@/components/admin/LinkPicker";
 
 function generateId() {
   return Math.random().toString(36).slice(2);
@@ -219,11 +220,9 @@ export default function AdminNavbarPage() {
                     </div>
                     <div>
                       <label className="admin-label">Href</label>
-                      <input
+                      <LinkPicker
                         value={cat.href}
-                        onChange={(e) => updateCategory(cat.id, "href", e.target.value)}
-                        className="admin-input"
-                        placeholder="/shop/category"
+                        onChange={(val) => updateCategory(cat.id, "href", val)}
                       />
                     </div>
                   </div>
@@ -254,11 +253,9 @@ export default function AdminNavbarPage() {
                             </div>
                             <div>
                               <label className="admin-label text-[10px]">URL Path</label>
-                              <input
+                              <LinkPicker
                                 value={sub.href}
-                                onChange={(e) => updateSubcategory(cat.id, idx, "href", e.target.value)}
-                                className="admin-input text-xs"
-                                placeholder="/shop/running"
+                                onChange={(val) => updateSubcategory(cat.id, idx, "href", val)}
                               />
                             </div>
                           </div>
@@ -319,11 +316,10 @@ export default function AdminNavbarPage() {
                 className="admin-input flex-1"
                 placeholder="Label"
               />
-              <input
+              <LinkPicker
                 value={link.href}
-                onChange={(e) => updateLink(idx, "href", e.target.value)}
-                className="admin-input flex-1"
-                placeholder="/path"
+                onChange={(val) => updateLink(idx, "href", val)}
+                className="flex-1"
               />
               <button onClick={() => removeLink(idx)} className="text-destructive hover:text-destructive/80 p-1">
                 <Trash2 className="size-4" />
