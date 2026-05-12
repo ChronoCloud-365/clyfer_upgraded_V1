@@ -1,5 +1,5 @@
 import { getHeroConfig, getFeaturedConfig } from "@/lib/site-config";
-import { getFeaturedProducts, getAllProducts } from "@/lib/products";
+import { getAllProducts } from "@/lib/products";
 import { HeroSlider } from "@/components/home/HeroSection";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { AllProductsSection } from "@/components/home/AllProductsSection";

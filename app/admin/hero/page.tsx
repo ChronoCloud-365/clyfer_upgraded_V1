@@ -203,6 +203,7 @@ export default function AdminHeroPage() {
                     <CloudinaryUpload
                       value={slide.imageUrl ? [slide.imageUrl] : []}
                       onChange={(urls) => updateSlide(slide.id, "imageUrl", urls[0] || "")}
+                      onAddImage={(url) => updateSlide(slide.id, "imageUrl", url)}
                       onRemove={() => updateSlide(slide.id, "imageUrl", "")}
                       maxFiles={1}
                     />
