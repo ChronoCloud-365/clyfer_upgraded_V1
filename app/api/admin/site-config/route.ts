@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import type { SiteConfigKey } from "@/types";
 import {
@@ -16,6 +16,14 @@ const DEFAULTS: Record<SiteConfigKey, unknown> = {
   footer: DEFAULT_FOOTER,
 };
 
+// Use service role client for admin operations
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
 export async function GET(request: NextRequest) {
   const key = request.nextUrl.searchParams.get("key") as SiteConfigKey;
   if (!key || !DEFAULTS[key]) {
@@ -23,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const { data, error } = await supabase
       .from("site_config")
       .select("value")
@@ -46,7 +54,7 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const { error } = await supabase
       .from("site_config")
       .upsert({ key, value }, { onConflict: "key" });
