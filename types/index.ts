@@ -104,10 +104,16 @@ export interface HeroConfig {
   slides: HeroSlide[];
 }
 
-export interface FeaturedConfig {
+export interface FeaturedSectionConfig {
+  id: string;
   title: string;
   subtitle: string;
   description?: string;
+  productIds: string[];
+}
+
+export interface FeaturedConfig {
+  sections: FeaturedSectionConfig[];
 }
 
 export interface FooterLink {

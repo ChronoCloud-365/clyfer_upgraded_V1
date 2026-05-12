@@ -18,9 +18,7 @@ export const DEFAULT_HERO: HeroConfig = {
 };
 
 export const DEFAULT_FEATURED: FeaturedConfig = {
-  title: "",
-  subtitle: "",
-  description: "",
+  sections: [],
 };
 
 export const DEFAULT_FOOTER: FooterConfig = {

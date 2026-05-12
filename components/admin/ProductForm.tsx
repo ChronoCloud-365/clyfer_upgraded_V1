@@ -210,6 +210,7 @@ export function ProductForm({ initial = {}, productId }: Props) {
         <CloudinaryUpload
           value={images}
           onChange={setImages}
+          onAddImage={(url) => setImages((prev) => [...prev, url])}
           onRemove={(urlToRemove) => setImages(images.filter((url) => url !== urlToRemove))}
           maxFiles={6}
         />

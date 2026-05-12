@@ -13,17 +13,30 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [heroConfig, featuredConfig, featuredProducts, allProducts] = await Promise.all([
+  const [heroConfig, featuredConfig, allProducts] = await Promise.all([
     getHeroConfig(),
     getFeaturedConfig(),
-    getFeaturedProducts(),
     getAllProducts(),
   ]);
 
   return (
     <main>
       <HeroSlider slides={heroConfig.slides} />
-      <FeaturedProducts config={featuredConfig} products={featuredProducts} />
+      
+      {/* Dynamic Featured Sections */}
+      {featuredConfig.sections?.map((section) => {
+        const sectionProducts = allProducts.filter((p) => 
+          section.productIds.includes(p.id)
+        );
+        return (
+          <FeaturedProducts 
+            key={section.id} 
+            section={section} 
+            products={sectionProducts} 
+          />
+        );
+      })}
+
       <AllProductsSection products={allProducts} />
     </main>
   );

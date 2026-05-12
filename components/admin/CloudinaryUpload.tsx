@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 interface CloudinaryUploadProps {
   value: string[];
   onChange: (value: string[]) => void;
+  onAddImage: (url: string) => void;
   onRemove: (value: string) => void;
   maxFiles?: number;
 }
@@ -16,13 +17,14 @@ interface CloudinaryUploadProps {
 export function CloudinaryUpload({
   value,
   onChange,
+  onAddImage,
   onRemove,
   maxFiles = 5,
 }: CloudinaryUploadProps) {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
   const onUpload = (result: any) => {
-    onChange([...value, result.info.secure_url]);
+    onAddImage(result.info.secure_url);
   };
 
   const handleDragStart = (idx: number) => setDraggedIdx(idx);
