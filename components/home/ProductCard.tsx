@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Star, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
+import { useCartStore } from "@/store/cart";
 import type { Product } from "@/types";
 
 interface ProductCardProps {
@@ -11,9 +13,26 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, index }: ProductCardProps) {
+  const addItem = useCartStore((s) => s.addItem);
+  const setCartOpen = useCartStore((s) => s.setCartOpen);
+
   const discount = product.original_price
     ? Math.round((1 - product.price / product.original_price) * 100)
     : null;
+
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigating to the product page
+    
+    // Use first available size and color, or fallbacks
+    const size = product.sizes?.[0] || 40;
+    const color = product.colors?.[0] || { name: "Default", value: "#000" };
+
+    addItem(product, size, color);
+    setCartOpen(true);
+    toast.success("Added to cart", {
+      description: `${product.name} has been added to your bag.`
+    });
+  };
 
   return (
     <motion.div
@@ -63,7 +82,8 @@ export function ProductCard({ product, index }: ProductCardProps) {
           {/* Quick add hover overlay */}
           <div className="absolute inset-x-5 bottom-5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out z-20">
             <button
-              className="w-full py-4 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-2xl active:scale-95 transition-transform"
+              onClick={handleQuickAdd}
+              className="w-full py-4 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-2xl active:scale-95 transition-transform hover:opacity-90"
               style={{
                 background: "oklch(0.78 0.18 72)",
                 color: "oklch(0.09 0 0)",
