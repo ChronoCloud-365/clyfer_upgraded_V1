@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Truck, Save, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { getShippingConfig, DEFAULT_SHIPPING } from "@/lib/site-config";
+import { DEFAULT_SHIPPING } from "@/lib/config-defaults";
 import type { ShippingConfig } from "@/types";
 
 export default function AdminShippingPage() {

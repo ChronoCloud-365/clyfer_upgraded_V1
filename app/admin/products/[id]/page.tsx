@@ -1,16 +1,21 @@
 import { ProductForm } from "@/components/admin/ProductForm";
 import type { Product } from "@/types";
 
+import { createClient } from "@/lib/supabase/server";
+
 async function getProduct(id: string): Promise<Product | null> {
   try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/api/admin/products/${id}`,
-      { cache: "no-store" }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.product ?? null;
-  } catch {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !data) return null;
+    return data as Product;
+  } catch (err) {
+    console.error("[getProduct] Error:", err);
     return null;
   }
 }

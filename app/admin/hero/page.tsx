@@ -204,7 +204,7 @@ export default function AdminHeroPage() {
                       value={slide.imageUrl ? [slide.imageUrl] : []}
                       onChange={(urls) => updateSlide(slide.id, "imageUrl", urls[0] || "")}
                       onAddImage={(url) => updateSlide(slide.id, "imageUrl", url)}
-                      onRemove={() => updateSlide(slide.id, "imageUrl", "")}
+                      onRemove={(url) => updateSlide(slide.id, "imageUrl", "")}
                       maxFiles={1}
                     />
                     <div className="flex gap-2 mt-3 items-center">

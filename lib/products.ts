@@ -1,13 +1,10 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import "server-only";
+import { createClient } from "./supabase/server";
 import type { Product } from "@/types";
-
-const supabase = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 export async function getFeaturedProducts(): Promise<Product[]> {
   try {
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("products")
       .select("*")
@@ -28,6 +25,7 @@ export async function getAllProducts(params?: {
   sort?: string;
 }) {
   try {
+    const supabase = await createClient();
     let query = supabase.from("products").select("*").eq("in_stock", true);
     if (params?.category && params.category !== "all") {
       query = query.eq("category", params.category);
@@ -45,6 +43,7 @@ export async function getAllProducts(params?: {
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("products")
       .select("*")

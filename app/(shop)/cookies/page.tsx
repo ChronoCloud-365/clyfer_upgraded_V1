@@ -1,4 +1,4 @@
-import { getCookiesConfig } from "@/lib/site-config";
+import { getCookiesConfig } from "@/lib/site-config-server";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

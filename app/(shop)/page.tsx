@@ -1,9 +1,10 @@
-import { getHeroConfig, getFeaturedConfig } from "@/lib/site-config";
+import { getHeroConfig, getFeaturedConfig } from "@/lib/site-config-server";
 import { getAllProducts } from "@/lib/products";
 import { HeroSlider } from "@/components/home/HeroSection";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { AllProductsSection } from "@/components/home/AllProductsSection";
 import type { Metadata } from "next";
+import type { FeaturedSectionConfig, Product } from "@/types";
 
 export const revalidate = 60;
 
@@ -24,8 +25,8 @@ export default async function HomePage() {
       <HeroSlider slides={heroConfig.slides} />
       
       {/* Dynamic Featured Sections */}
-      {featuredConfig.sections?.map((section) => {
-        const sectionProducts = allProducts.filter((p) => 
+      {featuredConfig.sections?.map((section: FeaturedSectionConfig) => {
+        const sectionProducts = allProducts.filter((p: Product) => 
           section.productIds.includes(p.id)
         );
         return (

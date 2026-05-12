@@ -1,4 +1,4 @@
-import { getTermsConfig } from "@/lib/site-config";
+import { getTermsConfig } from "@/lib/site-config-server";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

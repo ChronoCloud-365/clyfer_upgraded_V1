@@ -136,6 +136,11 @@ export interface LegalConfig {
   content: string;
 }
 
+export interface ShippingConfig {
+  insideDhaka: number;
+  outsideDhaka: number;
+}
+
 export type SiteConfigKey =
   | "navbar"
   | "hero"

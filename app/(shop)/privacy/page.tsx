@@ -1,4 +1,4 @@
-import { getPrivacyConfig } from "@/lib/site-config";
+import { getPrivacyConfig } from "@/lib/site-config-server";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

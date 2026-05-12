@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getFooterConfig } from "@/lib/site-config";
+import { getFooterConfig } from "@/lib/site-config-server";
 import { Share2, Users, Play, Mail } from "lucide-react";
 
 const SOCIAL_ICONS: Record<string, React.ElementType> = {
