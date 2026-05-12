@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -9,8 +9,12 @@ import {
   CheckCircle2,
   Loader2,
   ArrowLeft,
+  Phone,
+  MapPin,
+  User,
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
+import { cn } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
@@ -19,20 +23,48 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({
     customer_name: "",
     phone: "",
+    phone2: "",
     address: "",
     city: "",
+    shipping_area: "inside" as "inside" | "outside",
     notes: "",
   });
+
+  const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 120 });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function loadRates() {
+      try {
+        const res = await fetch("/api/admin/site-config?key=shipping");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.value) {
+            setShippingRates({
+              inside: data.value.insideDhaka || 80,
+              outside: data.value.outsideDhaka || 120,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load shipping rates", e);
+      }
+    }
+    loadRates();
+  }, []);
 
   const subtotal = items.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
-  const shipping = subtotal > 0 ? 60 : 0;
-  const total = subtotal + shipping;
+
+  const shippingCost = subtotal > 0
+    ? (form.shipping_area === "inside" ? shippingRates.inside : shippingRates.outside)
+    : 0;
+
+  const total = subtotal + shippingCost;
 
   function update(field: string, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -45,19 +77,19 @@ export default function CheckoutPage() {
     setError("");
 
     try {
-      // Submit one order per cart item (simplified)
       for (const item of items) {
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...form,
+            phone: `${form.phone}${form.phone2 ? ` / ${form.phone2}` : ""}`,
             product_id: item.product.id,
             product_name: item.product.name,
             size: item.size,
             color: item.color?.name ?? "",
             quantity: item.quantity,
-            total_price: item.product.price * item.quantity + shipping,
+            total_price: item.product.price * item.quantity + (shippingCost / items.length),
           }),
         });
         if (!res.ok) {
@@ -109,8 +141,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-background pt-24 pb-20">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3 mb-8">
           <Link
             href="/shop"
@@ -119,108 +150,172 @@ export default function CheckoutPage() {
             <ArrowLeft className="size-4" />
           </Link>
           <div>
-            <h1 className="text-2xl font-black text-foreground">Checkout</h1>
-            <p className="text-muted-foreground text-sm">Cash on Delivery</p>
+            <h1 className="text-3xl font-black text-foreground tracking-tight">CHECKOUT</h1>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Cash on Delivery</p>
           </div>
         </div>
 
         {items.length === 0 ? (
-          <div className="text-center py-20">
-            <ShoppingBag className="size-12 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">Your cart is empty</p>
+          <div className="text-center py-24 border-2 border-dashed border-border rounded-3xl">
+            <ShoppingBag className="size-12 text-muted-foreground/20 mx-auto mb-4" />
+            <p className="text-muted-foreground mb-6 font-medium">Your cart is empty</p>
             <Link
               href="/shop"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm shadow-lg transition-transform hover:scale-105 active:scale-95"
               style={{
                 background: "oklch(0.78 0.18 72)",
                 color: "oklch(0.09 0 0)",
               }}
             >
-              Start Shopping
+              Back to Shop
             </Link>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Form */}
-            <div className="lg:col-span-2">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
-                  <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                    <Truck className="size-4" /> Delivery Information
-                  </h2>
+          <div className="grid lg:grid-cols-12 gap-8 items-start">
+            <div className="lg:col-span-7">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="rounded-3xl border border-border bg-card p-6 md:p-8 space-y-8">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 text-amber-700">
+                      <User className="size-4" />
+                      <h2 className="text-xs font-black uppercase tracking-widest">Personal Details</h2>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <label className="checkout-label">Full Name *</label>
-                      <input
-                        required
-                        value={form.customer_name}
-                        onChange={(e) => update("customer_name", e.target.value)}
-                        className="checkout-input"
-                        placeholder="Your full name"
-                      />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          required
+                          value={form.customer_name}
+                          onChange={(e) => update("customer_name", e.target.value)}
+                          className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 transition-all"
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1 flex items-center gap-1">
+                            Phone Number 1 <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            required
+                            type="tel"
+                            value={form.phone}
+                            onChange={(e) => update("phone", e.target.value)}
+                            className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 transition-all"
+                            placeholder="01XXXXXXXXX"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1">
+                            Phone Number 2 (Optional)
+                          </label>
+                          <input
+                            type="tel"
+                            value={form.phone2}
+                            onChange={(e) => update("phone2", e.target.value)}
+                            className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 transition-all"
+                            placeholder="Alternative number"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="checkout-label">Phone Number *</label>
-                      <input
-                        required
-                        type="tel"
-                        value={form.phone}
-                        onChange={(e) => update("phone", e.target.value)}
-                        className="checkout-input"
-                        placeholder="01XXXXXXXXX"
-                      />
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 text-amber-700">
+                      <MapPin className="size-4" />
+                      <h2 className="text-xs font-black uppercase tracking-widest">Shipping Address</h2>
                     </div>
-                    <div>
-                      <label className="checkout-label">City / District *</label>
-                      <input
-                        required
-                        value={form.city}
-                        onChange={(e) => update("city", e.target.value)}
-                        className="checkout-input"
-                        placeholder="Dhaka"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="checkout-label">Full Address *</label>
-                      <textarea
-                        required
-                        value={form.address}
-                        onChange={(e) => update("address", e.target.value)}
-                        rows={2}
-                        className="checkout-input resize-none"
-                        placeholder="House, Road, Area, City"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="checkout-label">Order Notes (optional)</label>
-                      <textarea
-                        value={form.notes}
-                        onChange={(e) => update("notes", e.target.value)}
-                        rows={2}
-                        className="checkout-input resize-none"
-                        placeholder="Any special instructions?"
-                      />
+
+                    <div className="space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => update("shipping_area", "inside")}
+                          className={cn(
+                            "p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group",
+                            form.shipping_area === "inside"
+                              ? "border-amber-500 bg-amber-500/5 shadow-inner"
+                              : "border-border bg-muted/20 hover:border-amber-500/40"
+                          )}
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className={cn("text-sm font-black tracking-tight", form.shipping_area === "inside" ? "text-amber-700" : "text-foreground")}>
+                              INSIDE DHAKA
+                            </span>
+                            {form.shipping_area === "inside" && <div className="size-2 rounded-full bg-amber-500" />}
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground tracking-widest">৳{shippingRates.inside} FLAT RATE</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => update("shipping_area", "outside")}
+                          className={cn(
+                            "p-4 rounded-2xl border-2 text-left transition-all relative overflow-hidden group",
+                            form.shipping_area === "outside"
+                              ? "border-amber-500 bg-amber-500/5 shadow-inner"
+                              : "border-border bg-muted/20 hover:border-amber-500/40"
+                          )}
+                        >
+                          <div className="flex justify-between items-center mb-1">
+                            <span className={cn("text-sm font-black tracking-tight", form.shipping_area === "outside" ? "text-amber-700" : "text-foreground")}>
+                              OUTSIDE DHAKA
+                            </span>
+                            {form.shipping_area === "outside" && <div className="size-2 rounded-full bg-amber-500" />}
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground tracking-widest">৳{shippingRates.outside} FLAT RATE</span>
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1">
+                          Full Delivery Address <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                          required
+                          value={form.address}
+                          onChange={(e) => update("address", e.target.value)}
+                          rows={3}
+                          className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 transition-all resize-none"
+                          placeholder="House, Road, Area, City"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1">
+                          Order Notes (Optional)
+                        </label>
+                        <textarea
+                          value={form.notes}
+                          onChange={(e) => update("notes", e.target.value)}
+                          rows={2}
+                          className="w-full bg-muted/30 border border-border rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 transition-all resize-none"
+                          placeholder="Special instructions for delivery"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-xl px-4 py-3">
-                    {error}
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-2xl px-5 py-4 font-medium">
+                    ⚠️ {error}
                   </div>
                 )}
 
-                <div className="rounded-2xl border border-border bg-amber-500/5 border-amber-500/20 p-4">
-                  <div className="flex items-start gap-3">
-                    <Truck className="size-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+                  <div className="flex items-start gap-4">
+                    <Truck className="size-5 text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        Cash on Delivery
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Pay when your order arrives. No upfront payment needed.
-                        Delivery: 2-5 business days.
+                      <p className="text-sm font-black text-foreground">CASH ON DELIVERY (COD)</p>
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        Pay total amount at your doorstep when you receive the product.
+                        Delivery timeline: 2-3 days (Dhaka), 3-5 days (Outside).
                       </p>
                     </div>
                   </div>
@@ -229,44 +324,45 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm disabled:opacity-70"
+                  className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-black text-sm disabled:opacity-70 transition-all hover:scale-[1.01] active:scale-[0.99] uppercase tracking-widest"
                   style={{
                     background: "oklch(0.78 0.18 72)",
                     color: "oklch(0.09 0 0)",
                   }}
                 >
-                  {loading && <Loader2 className="size-4 animate-spin" />}
-                  {loading ? "Placing Order…" : `Confirm Order · ৳${total.toLocaleString()}`}
+                  {loading ? (
+                    <Loader2 className="size-5 animate-spin" />
+                  ) : (
+                    <>CONFIRM ORDER · ৳{total.toLocaleString()}</>
+                  )}
                 </button>
               </form>
             </div>
 
-            {/* Order summary */}
-            <div>
-              <div className="rounded-2xl border border-border bg-card p-5 space-y-4 sticky top-24">
-                <h2 className="text-base font-semibold text-foreground">
-                  Order Summary
-                </h2>
-
-                <div className="space-y-3">
+            <div className="lg:col-span-5">
+              <div className="rounded-3xl border border-border bg-card overflow-hidden sticky top-24 shadow-sm">
+                <div className="px-6 py-5 border-b border-border bg-muted/10">
+                  <h2 className="text-xs font-black uppercase tracking-widest">Order Summary</h2>
+                </div>
+                
+                <div className="p-6 space-y-6 max-h-[40vh] overflow-y-auto">
                   {items.map((item) => (
-                    <div key={`${item.product.id}-${item.size}`} className="flex gap-3">
-                      <div className="size-14 rounded-xl overflow-hidden bg-muted shrink-0 border border-border">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <div key={`${item.product.id}-${item.size}-${item.color?.name ?? ""}`} className="flex gap-4">
+                      <div className="size-20 rounded-2xl overflow-hidden bg-muted shrink-0 border border-border">
                         <img
                           src={item.product.images?.[0] ?? ""}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <p className="text-sm font-bold text-foreground truncate uppercase tracking-tight">
                           {item.product.name}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Size: {item.size} · Qty: {item.quantity}
+                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
+                          SIZE: {item.size} · QTY: {item.quantity}
                         </p>
-                        <p className="text-sm font-semibold text-foreground mt-0.5">
+                        <p className="text-sm font-black mt-auto">
                           ৳{(item.product.price * item.quantity).toLocaleString()}
                         </p>
                       </div>
@@ -274,19 +370,29 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                <div className="border-t border-border pt-4 space-y-2 text-sm">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span>৳{subtotal.toLocaleString()}</span>
+                <div className="p-6 bg-muted/5 space-y-3 border-t border-border">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground font-medium">Subtotal</span>
+                    <span className="text-foreground font-bold">৳{subtotal.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Delivery</span>
-                    <span>৳{shipping}</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground font-medium">Delivery Cost</span>
+                    <span className="font-black">
+                      {shippingCost > 0 ? `+ ৳${shippingCost}` : "FREE"}
+                    </span>
                   </div>
-                  <div className="flex justify-between font-bold text-foreground text-base border-t border-border pt-2">
-                    <span>Total</span>
-                    <span>৳{total.toLocaleString()}</span>
+                  <div className="pt-4 border-t border-dashed border-border flex justify-between items-end">
+                    <span className="text-xs font-black uppercase tracking-widest">Total Amount</span>
+                    <span className="text-3xl font-black text-foreground tracking-tighter">
+                      ৳{total.toLocaleString()}
+                    </span>
                   </div>
+                </div>
+                
+                <div className="px-6 py-4 bg-muted/20 border-t border-border text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Estimated Delivery: {form.shipping_area === "inside" ? "24-48 Hours" : "3-5 Days"}
+                  </p>
                 </div>
               </div>
             </div>

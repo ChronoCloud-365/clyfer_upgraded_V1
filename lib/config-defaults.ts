@@ -6,6 +6,7 @@ import type {
   HeroConfig,
   FeaturedConfig,
   FooterConfig,
+  ShippingConfig,
 } from "@/types";
 
 export const DEFAULT_NAVBAR: NavbarConfig = {
@@ -25,5 +26,10 @@ export const DEFAULT_FOOTER: FooterConfig = {
   tagline: "",
   columns: [],
   socialLinks: [],
+};
+
+export const DEFAULT_SHIPPING: ShippingConfig = {
+  insideDhaka: 80,
+  outsideDhaka: 120,
 };
 

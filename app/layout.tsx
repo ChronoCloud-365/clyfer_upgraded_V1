@@ -53,6 +53,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { CartDrawer } from "@/components/cart/CartDrawer";
+
 export default function RootLayout({
   children,
 }: {
@@ -70,6 +72,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <CartDrawer />
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>

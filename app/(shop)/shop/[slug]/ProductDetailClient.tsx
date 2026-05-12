@@ -257,7 +257,7 @@ export function ProductDetailClient({ product }: Props) {
                 }}
               >
                 <CreditCard className="size-4" />
-                Buy Now
+                Buy Now · ৳{(product.price * quantity).toLocaleString()}
               </button>
             </div>
 

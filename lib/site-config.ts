@@ -4,6 +4,7 @@ import type {
   HeroConfig,
   FeaturedConfig,
   FooterConfig,
+  ShippingConfig,
   SiteConfigKey,
 } from "@/types";
 
@@ -13,6 +14,7 @@ export {
   DEFAULT_HERO,
   DEFAULT_FEATURED,
   DEFAULT_FOOTER,
+  DEFAULT_SHIPPING,
 } from "@/lib/config-defaults";
 
 import {
@@ -20,6 +22,7 @@ import {
   DEFAULT_HERO,
   DEFAULT_FEATURED,
   DEFAULT_FOOTER,
+  DEFAULT_SHIPPING,
 } from "@/lib/config-defaults";
 
 const DEFAULTS = {
@@ -27,6 +30,7 @@ const DEFAULTS = {
   hero: DEFAULT_HERO,
   featured: DEFAULT_FEATURED,
   footer: DEFAULT_FOOTER,
+  shipping: DEFAULT_SHIPPING,
 } satisfies Record<SiteConfigKey, unknown>;
 
 // ── Server-side fetch helpers ─────────────────────────────────────
@@ -57,3 +61,6 @@ export const getFeaturedConfig = () =>
 
 export const getFooterConfig = () =>
   fetchConfig<FooterConfig>("footer", DEFAULT_FOOTER);
+
+export const getShippingConfig = () =>
+  fetchConfig<ShippingConfig>("shipping", DEFAULT_SHIPPING);

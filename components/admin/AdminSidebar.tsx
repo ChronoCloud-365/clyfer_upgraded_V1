@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { label: "Footer", href: "/admin/footer", icon: AlignLeft },
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
+  { label: "Shipping", href: "/admin/shipping", icon: Truck },
 ];
 
 export function AdminSidebar() {

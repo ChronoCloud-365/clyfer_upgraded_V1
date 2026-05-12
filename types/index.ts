@@ -132,4 +132,9 @@ export interface FooterConfig {
   socialLinks: { label: string; href: string }[];
 }
 
-export type SiteConfigKey = "navbar" | "hero" | "featured" | "footer";
+export interface ShippingConfig {
+  insideDhaka: number;
+  outsideDhaka: number;
+}
+
+export type SiteConfigKey = "navbar" | "hero" | "featured" | "footer" | "shipping";
