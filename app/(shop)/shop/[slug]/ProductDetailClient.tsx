@@ -115,7 +115,7 @@ export function ProductDetailClient({ product }: Props) {
               <p className="text-sm text-muted-foreground uppercase tracking-widest font-medium mb-1">
                 {product.brand}
               </p>
-              <h1 className="text-3xl font-black tracking-tight text-foreground">
+              <h1 className="text-3xl font-bold tracking-normal text-foreground">
                 {product.name}
               </h1>
               {/* Rating */}
@@ -140,7 +140,7 @@ export function ProductDetailClient({ product }: Props) {
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-black text-foreground">
+              <span className="text-3xl font-bold text-foreground">
                 ৳{product.price.toLocaleString()}
               </span>
               {product.original_price && (

@@ -90,7 +90,7 @@ export function HeroSlider({ slides }: Props) {
                       animate={i === current ? { opacity: 1, y: 0 } : {}}
                       transition={{ delay: 0.2 }}
                     >
-                      <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black leading-[0.95] tracking-tight text-foreground">
+                      <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[0.95] tracking-normal text-foreground">
                         {slide.title}
                         <br />
                         <span className="text-brand">{slide.titleHighlight}</span>
@@ -116,7 +116,7 @@ export function HeroSlider({ slides }: Props) {
                     >
                       <Link
                         href={slide.ctaPrimary.href}
-                        className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-bold text-sm tracking-wide transition-all hover:scale-[1.03] active:scale-[0.98]"
+                        className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-bold text-sm transition-all hover:scale-[1.03] active:scale-[0.98]"
                         style={{
                           background: "oklch(0.78 0.18 72)",
                           color: "oklch(0.09 0 0)",
@@ -144,7 +144,7 @@ export function HeroSlider({ slides }: Props) {
                           key={si}
                           className="flex flex-col items-center justify-center px-5 py-3 rounded-2xl bg-card border border-border backdrop-blur-sm"
                         >
-                          <span className="text-xl font-black text-foreground">{stat.value}</span>
+                          <span className="text-xl font-bold text-foreground">{stat.value}</span>
                           <span className="text-xs text-muted-foreground mt-0.5">{stat.label}</span>
                         </div>
                       ))}

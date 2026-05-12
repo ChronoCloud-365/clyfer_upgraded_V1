@@ -63,17 +63,17 @@ export function ProductCard({ product, index }: ProductCardProps) {
           {/* Badges */}
           <div className="absolute top-5 left-5 flex flex-col gap-2 z-10">
             {discount && (
-              <span className="text-[10px] font-black tracking-tighter px-3 py-1.5 rounded-xl bg-red-500 text-white shadow-xl backdrop-blur-md">
+              <span className="text-[10px] font-bold tracking-normal px-3 py-1.5 rounded-xl bg-red-500 text-white shadow-xl backdrop-blur-md">
                 -{discount}%
               </span>
             )}
             {product.tags?.includes("new") && (
-              <span className="text-[10px] font-black tracking-tighter px-3 py-1.5 rounded-xl bg-foreground text-background shadow-xl">
+              <span className="text-[10px] font-bold tracking-normal px-3 py-1.5 rounded-xl bg-foreground text-background shadow-xl">
                 NEW
               </span>
             )}
             {product.tags?.includes("limited") && (
-              <span className="text-[10px] font-black tracking-tighter px-3 py-1.5 rounded-xl bg-brand text-brand-foreground shadow-xl">
+              <span className="text-[10px] font-bold tracking-normal px-3 py-1.5 rounded-xl bg-brand text-brand-foreground shadow-xl">
                 LIMITED
               </span>
             )}
@@ -83,7 +83,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
           <div className="absolute inset-x-5 bottom-5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out z-20">
             <button
               onClick={handleQuickAdd}
-              className="w-full py-4 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-2xl active:scale-95 transition-transform hover:opacity-90"
+              className="w-full py-4 rounded-3xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 shadow-2xl active:scale-95 transition-transform hover:opacity-90"
               style={{
                 background: "oklch(0.78 0.18 72)",
                 color: "oklch(0.09 0 0)",
@@ -97,12 +97,12 @@ export function ProductCard({ product, index }: ProductCardProps) {
 
         <div className="space-y-1.5 px-2">
           <div className="flex items-center justify-between">
-             <p className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] font-black opacity-60">
+             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">
               {product.brand}
             </p>
             <div className="flex items-center gap-1">
               <Star className="size-2.5 fill-amber-400 text-amber-400" />
-              <span className="text-[10px] text-muted-foreground font-black">
+              <span className="text-[10px] text-muted-foreground font-bold">
                 {product.rating}
               </span>
             </div>
@@ -113,7 +113,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
           </h3>
           
           <div className="flex items-center gap-3 pt-1">
-            <span className="text-lg font-black text-foreground tabular-nums">
+            <span className="text-lg font-bold text-foreground tabular-nums">
               ৳{product.price.toLocaleString()}
             </span>
             {product.original_price && (

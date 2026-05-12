@@ -117,7 +117,7 @@ export default function CheckoutPage() {
           <div className="size-20 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="size-10 text-green-500" />
           </div>
-          <h1 className="text-2xl font-black text-foreground mb-3">
+          <h1 className="text-2xl font-bold text-foreground mb-3">
             Order Placed!
           </h1>
           <p className="text-muted-foreground mb-8">
@@ -150,8 +150,8 @@ export default function CheckoutPage() {
             <ArrowLeft className="size-4" />
           </Link>
           <div>
-            <h1 className="text-3xl font-black text-foreground tracking-tight">CHECKOUT</h1>
-            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Cash on Delivery</p>
+            <h1 className="text-3xl font-bold text-foreground tracking-normal">CHECKOUT</h1>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Cash on Delivery</p>
           </div>
         </div>
 
@@ -178,7 +178,7 @@ export default function CheckoutPage() {
                   <div className="space-y-6">
                     <div className="flex items-center gap-2 text-amber-700">
                       <User className="size-4" />
-                      <h2 className="text-xs font-black uppercase tracking-widest">Personal Details</h2>
+                      <h2 className="text-xs font-bold uppercase tracking-wide">Personal Details</h2>
                     </div>
 
                     <div className="space-y-4">
@@ -228,7 +228,7 @@ export default function CheckoutPage() {
                   <div className="space-y-6">
                     <div className="flex items-center gap-2 text-amber-700">
                       <MapPin className="size-4" />
-                      <h2 className="text-xs font-black uppercase tracking-widest">Shipping Address</h2>
+                      <h2 className="text-xs font-bold uppercase tracking-wide">Shipping Address</h2>
                     </div>
 
                     <div className="space-y-4">
@@ -244,12 +244,12 @@ export default function CheckoutPage() {
                           )}
                         >
                           <div className="flex justify-between items-center mb-1">
-                            <span className={cn("text-sm font-black tracking-tight", form.shipping_area === "inside" ? "text-amber-700" : "text-foreground")}>
+                            <span className={cn("text-sm font-bold tracking-normal", form.shipping_area === "inside" ? "text-amber-700" : "text-foreground")}>
                               INSIDE DHAKA
                             </span>
                             {form.shipping_area === "inside" && <div className="size-2 rounded-full bg-amber-500" />}
                           </div>
-                          <span className="text-xs font-bold text-muted-foreground tracking-widest">৳{shippingRates.inside} FLAT RATE</span>
+                          <span className="text-xs font-bold text-muted-foreground tracking-wide">৳{shippingRates.inside} FLAT RATE</span>
                         </button>
 
                         <button
@@ -263,12 +263,12 @@ export default function CheckoutPage() {
                           )}
                         >
                           <div className="flex justify-between items-center mb-1">
-                            <span className={cn("text-sm font-black tracking-tight", form.shipping_area === "outside" ? "text-amber-700" : "text-foreground")}>
+                            <span className={cn("text-sm font-bold tracking-normal", form.shipping_area === "outside" ? "text-amber-700" : "text-foreground")}>
                               OUTSIDE DHAKA
                             </span>
                             {form.shipping_area === "outside" && <div className="size-2 rounded-full bg-amber-500" />}
                           </div>
-                          <span className="text-xs font-bold text-muted-foreground tracking-widest">৳{shippingRates.outside} FLAT RATE</span>
+                          <span className="text-xs font-bold text-muted-foreground tracking-wide">৳{shippingRates.outside} FLAT RATE</span>
                         </button>
                       </div>
 
@@ -312,7 +312,7 @@ export default function CheckoutPage() {
                   <div className="flex items-start gap-4">
                     <Truck className="size-5 text-amber-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-black text-foreground">CASH ON DELIVERY (COD)</p>
+                      <p className="text-sm font-bold text-foreground">CASH ON DELIVERY (COD)</p>
                       <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                         Pay total amount at your doorstep when you receive the product.
                         Delivery timeline: 2-3 days (Dhaka), 3-5 days (Outside).
@@ -324,7 +324,7 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-black text-sm disabled:opacity-70 transition-all hover:scale-[1.01] active:scale-[0.99] uppercase tracking-widest"
+                  className="w-full flex items-center justify-center gap-3 py-5 rounded-2xl font-bold text-sm disabled:opacity-70 transition-all hover:scale-[1.01] active:scale-[0.99] uppercase tracking-wide"
                   style={{
                     background: "oklch(0.78 0.18 72)",
                     color: "oklch(0.09 0 0)",
@@ -342,7 +342,7 @@ export default function CheckoutPage() {
             <div className="lg:col-span-5">
               <div className="rounded-3xl border border-border bg-card overflow-hidden sticky top-24 shadow-sm">
                 <div className="px-6 py-5 border-b border-border bg-muted/10">
-                  <h2 className="text-xs font-black uppercase tracking-widest">Order Summary</h2>
+                  <h2 className="text-xs font-bold uppercase tracking-wide">Order Summary</h2>
                 </div>
                 
                 <div className="p-6 space-y-6 max-h-[40vh] overflow-y-auto">
@@ -359,10 +359,10 @@ export default function CheckoutPage() {
                         <p className="text-sm font-bold text-foreground truncate uppercase tracking-tight">
                           {item.product.name}
                         </p>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-0.5">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mt-0.5">
                           SIZE: {item.size} · QTY: {item.quantity}
                         </p>
-                        <p className="text-sm font-black mt-auto">
+                        <p className="text-sm font-bold mt-auto">
                           ৳{(item.product.price * item.quantity).toLocaleString()}
                         </p>
                       </div>
@@ -377,20 +377,20 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground font-medium">Delivery Cost</span>
-                    <span className="font-black">
+                    <span className="font-bold">
                       {shippingCost > 0 ? `+ ৳${shippingCost}` : "FREE"}
                     </span>
                   </div>
                   <div className="pt-4 border-t border-dashed border-border flex justify-between items-end">
-                    <span className="text-xs font-black uppercase tracking-widest">Total Amount</span>
-                    <span className="text-3xl font-black text-foreground tracking-tighter">
+                    <span className="text-xs font-bold uppercase tracking-wide">Total Amount</span>
+                    <span className="text-3xl font-bold text-foreground tracking-normal">
                       ৳{total.toLocaleString()}
                     </span>
                   </div>
                 </div>
                 
                 <div className="px-6 py-4 bg-muted/20 border-t border-border text-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                     Estimated Delivery: {form.shipping_area === "inside" ? "24-48 Hours" : "3-5 Days"}
                   </p>
                 </div>

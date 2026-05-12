@@ -25,10 +25,10 @@ export function FeaturedProducts({ section, products }: Props) {
           className="flex items-end justify-between mb-12"
         >
           <div className="max-w-xl">
-            <span className="text-[10px] font-black text-brand uppercase tracking-[0.3em] mb-3 block">
+            <span className="text-[10px] font-bold text-brand uppercase tracking-[0.2em] mb-3 block">
               {section.subtitle}
             </span>
-            <h2 className="text-4xl lg:text-5xl font-black tracking-tighter text-foreground leading-[0.9]">
+            <h2 className="text-4xl lg:text-5xl font-bold tracking-normal text-foreground leading-[1.1]">
               {section.title}
             </h2>
             {section.description && (
@@ -39,7 +39,7 @@ export function FeaturedProducts({ section, products }: Props) {
           </div>
           <Link
             href="/shop"
-            className="hidden sm:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-brand transition-colors group"
+            className="hidden sm:flex items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground hover:text-brand transition-colors group"
           >
             Explore All <ArrowRight className="size-3 group-hover:translate-x-1 transition-transform" />
           </Link>
@@ -55,7 +55,7 @@ export function FeaturedProducts({ section, products }: Props) {
         <div className="mt-10 text-center sm:hidden">
           <Link
             href="/shop"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-[10px] font-bold uppercase tracking-wide shadow-xl"
             style={{
               background: "oklch(0.78 0.18 72)",
               color: "oklch(0.09 0 0)",

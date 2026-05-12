@@ -19,7 +19,7 @@ export async function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-14">
           {/* Brand */}
           <div className="lg:col-span-2 space-y-5">
-            <Link href="/" className="text-2xl font-black tracking-tight text-foreground">
+            <Link href="/" className="text-2xl font-bold tracking-normal text-foreground">
               CLY<span className="text-brand">FER</span>
             </Link>
             <p className="text-sm leading-relaxed max-w-xs">{config.tagline}</p>

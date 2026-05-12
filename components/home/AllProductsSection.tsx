@@ -44,7 +44,7 @@ export function AllProductsSection({ products }: Props) {
     <section className="py-20 lg:py-28 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl lg:text-4xl font-black tracking-tight text-foreground mb-4">
+          <h2 className="text-3xl lg:text-4xl font-bold tracking-normal text-foreground mb-4">
             Discover Our Collection
           </h2>
           <p className="text-muted-foreground">
@@ -60,7 +60,7 @@ export function AllProductsSection({ products }: Props) {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
+                className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${
                   activeCategory === cat
                     ? "bg-foreground text-background shadow-lg scale-105"
                     : "bg-background border border-border text-muted-foreground hover:text-foreground hover:border-foreground/20"

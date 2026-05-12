@@ -66,7 +66,7 @@ export function NavbarClient({ config }: Props) {
             <motion.span
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              className="text-2xl font-black tracking-tighter"
+              className="text-2xl font-bold tracking-normal"
             >
               CLY<span className="text-brand">FER</span>
             </motion.span>
@@ -200,7 +200,7 @@ export function NavbarClient({ config }: Props) {
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                 <div className="flex flex-col h-full">
                   <div className="flex items-center justify-between px-6 py-5 border-b">
-                    <span className="text-xl font-black tracking-tighter">
+                    <span className="text-xl font-bold tracking-normal">
                       CLY<span className="text-brand">FER</span>
                     </span>
                     <button

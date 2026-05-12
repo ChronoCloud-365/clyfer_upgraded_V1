@@ -30,7 +30,16 @@ export default async function ProductDetailPage({
 }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
-  if (!product) notFound();
+  
+  if (!product) {
+    // Smart fallback: if slug matches a category, redirect to shop
+    const categories = ["running", "casual", "formal", "sports", "limited"];
+    if (categories.includes(slug.toLowerCase())) {
+      const { redirect } = await import("next/navigation");
+      redirect(`/shop?category=${slug.toLowerCase()}`);
+    }
+    notFound();
+  }
 
   return <ProductDetailClient product={product} />;
 }
