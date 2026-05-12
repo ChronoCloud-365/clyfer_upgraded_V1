@@ -1,0 +1,82 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
+
+const geistSans = Geist({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: {
+    default: "Clyfer — Premium Footwear",
+    template: "%s | Clyfer",
+  },
+  description:
+    "Discover premium sneakers and footwear at Clyfer. Shop the latest drops, limited editions, and everyday classics. Free shipping over ৳ 5,000.",
+  keywords: ["shoes", "sneakers", "footwear", "clyfer", "premium shoes", "running shoes"],
+  authors: [{ name: "Clyfer" }],
+  creator: "Clyfer",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://clyfer.vercel.app",
+    siteName: "Clyfer",
+    title: "Clyfer — Premium Footwear",
+    description: "Step into your era. Premium footwear crafted for those who move forward.",
+    images: [
+      {
+        url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200",
+        width: 1200,
+        height: 630,
+        alt: "Clyfer Shoes",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Clyfer — Premium Footwear",
+    description: "Step into your era. Premium footwear for those who move forward.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen flex flex-col bg-background text-foreground`}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Navbar />
+          <main className="flex-1 pt-16 lg:pt-20">{children}</main>
+          <Footer />
+          <Toaster richColors position="bottom-right" />
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}

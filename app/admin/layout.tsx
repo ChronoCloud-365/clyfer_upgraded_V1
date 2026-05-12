@@ -1,0 +1,23 @@
+import type { Metadata } from "next";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
+
+export const metadata: Metadata = {
+  title: "Clyfer Admin",
+  description: "Clyfer e-commerce admin panel",
+  robots: "noindex,nofollow",
+};
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-screen bg-zinc-900 text-white font-sans">
+      <AdminSidebar />
+      <main className="flex-1 overflow-auto lg:pl-0 pt-14 lg:pt-0">
+        <div className="min-h-full">{children}</div>
+      </main>
+    </div>
+  );
+}
