@@ -70,40 +70,18 @@ export async function PUT(
 
   try {
     const supabase = getAdminClient();
-    let existingProduct: { category: string; subcategory?: string | null } | null = null;
-    const existingWithSubcategory = await supabase
-      .from("products")
-      .select("category, subcategory")
-      .eq("id", id)
-      .single();
-
-    if (existingWithSubcategory.error && isMissingSubcategoryColumnError(existingWithSubcategory.error.message)) {
-      const existingWithoutSubcategory = await supabase
-        .from("products")
-        .select("category")
-        .eq("id", id)
-        .single();
-
-      if (existingWithoutSubcategory.error || !existingWithoutSubcategory.data) {
-        return NextResponse.json({ error: "Product not found" }, { status: 404 });
-      }
-      existingProduct = { ...existingWithoutSubcategory.data, subcategory: null };
-    } else if (existingWithSubcategory.error || !existingWithSubcategory.data) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    } else {
-      existingProduct = existingWithSubcategory.data;
-    }
-
     const catalogCategories = await getCatalogCategories();
-    const effectiveCategory = parsed.data.category ?? existingProduct.category;
+    const effectiveCategory = parsed.data.category;
+    if (!effectiveCategory) {
+      return NextResponse.json({ error: "Category is required for update" }, { status: 400 });
+    }
     const category = catalogCategories.find((item) => item.id === effectiveCategory);
 
     if (!category) {
       return NextResponse.json({ error: "Unknown category selected" }, { status: 400 });
     }
 
-    const effectiveSubcategory =
-      parsed.data.subcategory !== undefined ? parsed.data.subcategory : existingProduct.subcategory ?? null;
+    const effectiveSubcategory = parsed.data.subcategory ?? null;
     if (effectiveSubcategory) {
       const subcategoryExists = category.subcategories.some(
         (subcategory) => subcategory.id === effectiveSubcategory
@@ -122,7 +100,8 @@ export async function PUT(
 
     if (error) {
       if (isMissingSubcategoryColumnError(error.message)) {
-        const { subcategory, ...fallbackPayload } = parsed.data;
+        const fallbackPayload = { ...parsed.data };
+        delete fallbackPayload.subcategory;
         const retry = await supabase
           .from("products")
           .update(fallbackPayload)

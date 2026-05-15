@@ -103,7 +103,8 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       if (isMissingSubcategoryColumnError(error.message)) {
-        const { subcategory, ...fallbackPayload } = parsed.data;
+        const fallbackPayload = { ...parsed.data };
+        delete fallbackPayload.subcategory;
         const retry = await supabase
           .from("products")
           .insert(fallbackPayload)
