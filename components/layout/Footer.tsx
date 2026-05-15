@@ -1,15 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getFooterConfig } from "@/lib/site-config-server";
-import { Share2, Users, Play, Mail } from "lucide-react";
 import type { FooterItem } from "@/types";
 
-const SOCIAL_ICONS: Record<string, React.ElementType> = {
-  Instagram: Share2,
-  Facebook: Users,
-  YouTube: Play,
-  Email: Mail,
+const SOCIAL_BADGES: Record<string, string> = {
+  Instagram: "IG",
+  Facebook: "FB",
+  YouTube: "YT",
+  Email: "@",
 };
+
+function resolveSocialIconName(
+  social: { label: string; href: string; iconName?: string }
+) {
+  const candidate = social.iconName ?? social.label;
+  if (SOCIAL_BADGES[candidate]) return candidate;
+
+  const href = social.href.toLowerCase();
+  if (href.includes("instagram")) return "Instagram";
+  if (href.includes("facebook")) return "Facebook";
+  if (href.includes("youtube")) return "YouTube";
+  if (href.includes("mailto:") || href.includes("@")) return "Email";
+  return "Email";
+}
 
 function renderFooterItem(item: FooterItem) {
   if (item.type === "link") {
@@ -25,7 +38,7 @@ function renderFooterItem(item: FooterItem) {
   }
 
   if (item.type === "icon") {
-    const Icon = SOCIAL_ICONS[item.iconName] ?? Mail;
+    const badge = SOCIAL_BADGES[item.iconName] ?? "@";
     return (
       <a
         href={item.href ?? "#"}
@@ -33,8 +46,8 @@ function renderFooterItem(item: FooterItem) {
         rel={item.href ? "noopener noreferrer" : undefined}
         className="inline-flex items-center gap-2 text-sm text-foreground hover:text-brand transition-colors"
       >
-        <span className="size-8 rounded-lg bg-muted flex items-center justify-center">
-          <Icon className="size-4 text-muted-foreground" />
+        <span className="size-8 rounded-lg bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+          {badge}
         </span>
         {item.label}
       </a>
@@ -66,7 +79,8 @@ export async function Footer() {
             <p className="text-sm leading-relaxed max-w-xs">{config.tagline}</p>
             <div className="flex gap-3 flex-wrap">
               {config.socialLinks.map((social) => {
-                const Icon = SOCIAL_ICONS[social.iconName ?? social.label] ?? Mail;
+                const iconName = resolveSocialIconName(social);
+                const badge = SOCIAL_BADGES[iconName] ?? "@";
                 return (
                   <a
                     key={`${social.label}-${social.href}`}
@@ -74,9 +88,9 @@ export async function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={social.label}
-                    className="size-9 rounded-xl bg-muted hover:bg-accent flex items-center justify-center transition-colors"
+                    className="size-9 rounded-xl bg-muted hover:bg-accent flex items-center justify-center transition-colors text-[10px] font-bold text-muted-foreground"
                   >
-                    <Icon className="size-4 text-muted-foreground" />
+                    {badge}
                   </a>
                 );
               })}
