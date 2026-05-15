@@ -29,6 +29,10 @@ function createFallbackClient() {
       data: { session: null, user: null },
       error: new Error("Supabase is not configured"),
     }),
+    exchangeCodeForSession: async () => ({
+      data: { session: null, user: null },
+      error: new Error("Supabase is not configured"),
+    }),
   };
 
   return {

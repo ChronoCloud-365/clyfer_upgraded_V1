@@ -62,7 +62,7 @@ export function CustomerAuthForm({ mode }: { mode: Mode }) {
 
       const redirectTo =
         typeof window !== "undefined"
-          ? `${window.location.origin}/login?registered=1`
+          ? `${window.location.origin}/auth/callback?next=/login?registered=1`
           : undefined;
 
       const { data, error: signUpError } = await client.auth.signUp({

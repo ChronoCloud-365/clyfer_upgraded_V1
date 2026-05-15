@@ -19,16 +19,6 @@ export default function RegisterPage() {
         <Suspense fallback={null}>
           <CustomerAuthForm mode="register" />
         </Suspense>
-
-        <div className="mt-12 pt-8 border-t border-border/50 text-center">
-          <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-widest">Administrator</p>
-          <a
-            href="/admin/login"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all text-xs font-bold"
-          >
-            Admin Dashboard
-          </a>
-        </div>
       </div>
     </div>
   );
