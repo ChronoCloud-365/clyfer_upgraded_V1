@@ -12,6 +12,11 @@ function getAdminClient() {
   );
 }
 
+function isMissingSubcategoryColumnError(message: string) {
+  const text = message.toLowerCase();
+  return text.includes("could not find the 'subcategory' column") || text.includes("column \"subcategory\" does not exist");
+}
+
 async function getCatalogIds() {
   const supabase = getAdminClient();
   const { data } = await supabase
@@ -97,6 +102,21 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
+      if (isMissingSubcategoryColumnError(error.message)) {
+        const { subcategory, ...fallbackPayload } = parsed.data;
+        const retry = await supabase
+          .from("products")
+          .insert(fallbackPayload)
+          .select()
+          .single();
+
+        if (retry.error) {
+          return NextResponse.json({ error: retry.error.message }, { status: 500 });
+        }
+        revalidatePath("/shop");
+        revalidatePath("/");
+        return NextResponse.json({ product: retry.data }, { status: 201 });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     revalidatePath("/shop");

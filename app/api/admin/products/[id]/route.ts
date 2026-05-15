@@ -12,6 +12,11 @@ function getAdminClient() {
   );
 }
 
+function isMissingSubcategoryColumnError(message: string) {
+  const text = message.toLowerCase();
+  return text.includes("could not find the 'subcategory' column") || text.includes("column \"subcategory\" does not exist");
+}
+
 async function getCatalogCategories() {
   const supabase = getAdminClient();
   const { data } = await supabase
@@ -65,14 +70,28 @@ export async function PUT(
 
   try {
     const supabase = getAdminClient();
-    const { data: existingProduct, error: existingError } = await supabase
+    let existingProduct: { category: string; subcategory?: string | null } | null = null;
+    const existingWithSubcategory = await supabase
       .from("products")
       .select("category, subcategory")
       .eq("id", id)
       .single();
 
-    if (existingError || !existingProduct) {
+    if (existingWithSubcategory.error && isMissingSubcategoryColumnError(existingWithSubcategory.error.message)) {
+      const existingWithoutSubcategory = await supabase
+        .from("products")
+        .select("category")
+        .eq("id", id)
+        .single();
+
+      if (existingWithoutSubcategory.error || !existingWithoutSubcategory.data) {
+        return NextResponse.json({ error: "Product not found" }, { status: 404 });
+      }
+      existingProduct = { ...existingWithoutSubcategory.data, subcategory: null };
+    } else if (existingWithSubcategory.error || !existingWithSubcategory.data) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    } else {
+      existingProduct = existingWithSubcategory.data;
     }
 
     const catalogCategories = await getCatalogCategories();
@@ -102,6 +121,23 @@ export async function PUT(
       .single();
 
     if (error) {
+      if (isMissingSubcategoryColumnError(error.message)) {
+        const { subcategory, ...fallbackPayload } = parsed.data;
+        const retry = await supabase
+          .from("products")
+          .update(fallbackPayload)
+          .eq("id", id)
+          .select()
+          .single();
+
+        if (retry.error) {
+          return NextResponse.json({ error: retry.error.message }, { status: 500 });
+        }
+        revalidatePath("/shop");
+        revalidatePath(`/shop/${retry.data.slug}`);
+        revalidatePath("/");
+        return NextResponse.json({ product: retry.data });
+      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     revalidatePath("/shop");
