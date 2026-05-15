@@ -10,8 +10,37 @@ function makeId() {
   return crypto.randomUUID();
 }
 
+type UiCatalogSubcategory = CatalogSubcategory & { uiKey: string };
+type UiCatalogCategory = Omit<CatalogCategory, "subcategories"> & {
+  uiKey: string;
+  subcategories: UiCatalogSubcategory[];
+};
+type UiCatalogConfig = { categories: UiCatalogCategory[] };
+
+function withUiKeys(config: CatalogConfig): UiCatalogConfig {
+  return {
+    categories: (config.categories ?? []).map((category) => ({
+      ...category,
+      uiKey: makeId(),
+      subcategories: (category.subcategories ?? []).map((subcategory) => ({
+        ...subcategory,
+        uiKey: makeId(),
+      })),
+    })),
+  };
+}
+
+function stripUiKeys(config: UiCatalogConfig): CatalogConfig {
+  return {
+    categories: config.categories.map(({ uiKey: _uiKey, subcategories, ...category }) => ({
+      ...category,
+      subcategories: subcategories.map(({ uiKey: _subUiKey, ...subcategory }) => subcategory),
+    })),
+  };
+}
+
 export default function AdminCatalogPage() {
-  const [config, setConfig] = useState<CatalogConfig>(DEFAULT_CATALOG);
+  const [config, setConfig] = useState<UiCatalogConfig>(withUiKeys(DEFAULT_CATALOG));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -19,7 +48,7 @@ export default function AdminCatalogPage() {
   useEffect(() => {
     fetch("/api/admin/site-config?key=catalog")
       .then((r) => r.json())
-      .then((d) => setConfig(d.value ?? DEFAULT_CATALOG))
+      .then((d) => setConfig(withUiKeys(d.value ?? DEFAULT_CATALOG)))
       .finally(() => setLoading(false));
   }, []);
 
@@ -29,6 +58,7 @@ export default function AdminCatalogPage() {
       categories: [
         ...current.categories,
         {
+          uiKey: makeId(),
           id: makeId(),
           label: "New Category",
           href: "/shop",
@@ -65,6 +95,7 @@ export default function AdminCatalogPage() {
               subcategories: [
                 ...category.subcategories,
                 {
+                  uiKey: makeId(),
                   id: makeId(),
                   label: "New Subcategory",
                   href: "/shop",
@@ -120,7 +151,7 @@ export default function AdminCatalogPage() {
       await fetch("/api/admin/site-config", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "catalog", value: config }),
+        body: JSON.stringify({ key: "catalog", value: stripUiKeys(config) }),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -176,7 +207,7 @@ export default function AdminCatalogPage() {
 
       <div className="space-y-6">
         {config.categories.map((category) => (
-          <div key={category.id} className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+          <div key={category.uiKey} className="rounded-3xl border border-border bg-card p-5 shadow-sm">
             <div className="grid lg:grid-cols-[1.2fr_1fr_1fr_auto] gap-3 items-center">
               <input
                 value={category.label}
@@ -234,7 +265,7 @@ export default function AdminCatalogPage() {
               ) : (
                 <div className="space-y-3">
                   {category.subcategories.map((subcategory) => (
-                    <div key={subcategory.id} className="rounded-2xl border border-border bg-background p-4">
+                    <div key={subcategory.uiKey} className="rounded-2xl border border-border bg-background p-4">
                       <div className="grid lg:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-center">
                         <input
                           value={subcategory.label}
