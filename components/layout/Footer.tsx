@@ -66,10 +66,10 @@ export async function Footer() {
             <p className="text-sm leading-relaxed max-w-xs">{config.tagline}</p>
             <div className="flex gap-3 flex-wrap">
               {config.socialLinks.map((social) => {
-                const Icon = SOCIAL_ICONS[social.label] ?? Mail;
+                const Icon = SOCIAL_ICONS[social.iconName ?? social.label] ?? Mail;
                 return (
                   <a
-                    key={social.label}
+                    key={`${social.label}-${social.href}`}
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"

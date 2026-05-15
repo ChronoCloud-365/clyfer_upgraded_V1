@@ -21,7 +21,7 @@ function makeDefaultSlide(): HeroSlide {
     subtitle: "Discover premium footwear built for those who move forward.",
     ctaPrimary: { label: "Shop Now", href: "/shop" },
     ctaSecondary: { label: "Explore", href: "/shop/limited" },
-    imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=90",
+    imageUrl: "",
     stats: [
       { value: "50K+", label: "Customers" },
       { value: "200+", label: "Styles" },

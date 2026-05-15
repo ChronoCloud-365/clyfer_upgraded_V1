@@ -181,7 +181,7 @@ export interface FooterColumn {
 export interface FooterConfig {
   tagline: string;
   columns: FooterColumn[];
-  socialLinks: { label: string; href: string }[];
+  socialLinks: { label: string; href: string; iconName?: string }[];
 }
 
 export interface LegalConfig {

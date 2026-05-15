@@ -70,7 +70,11 @@ export const footerConfigSchema = z.object({
       items: z.array(footerItemSchema),
     })
   ),
-  socialLinks: z.array(navLinkSchema),
+  socialLinks: z.array(
+    navLinkSchema.extend({
+      iconName: z.string().trim().optional(),
+    })
+  ),
 });
 
 export const shippingConfigSchema = z.object({
