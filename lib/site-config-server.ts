@@ -42,10 +42,28 @@ export async function getSiteConfig<T>(key: SiteConfigKey, defaultValue: T): Pro
 }
 
 export async function getNavbarConfig(): Promise<NavbarConfig> {
-  const [navbarSettings, catalog] = await Promise.all([
+  const [rawNavbarSettings, rawCatalog] = await Promise.all([
     getSiteConfig<NavbarSettings>("navbar", DEFAULT_NAVBAR_SETTINGS),
     getCatalogConfig(),
   ]);
+
+  const catalog = {
+    categories: Array.isArray(rawCatalog?.categories) ? rawCatalog.categories : [],
+  };
+
+  const navbarSettings: NavbarSettings = {
+    categoryIds: Array.isArray(rawNavbarSettings?.categoryIds)
+      ? rawNavbarSettings.categoryIds.filter((id): id is string => typeof id === "string")
+      : [],
+    links: Array.isArray(rawNavbarSettings?.links)
+      ? rawNavbarSettings.links.filter(
+          (link): link is NavbarSettings["links"][number] =>
+            Boolean(link) &&
+            typeof link.label === "string" &&
+            typeof link.href === "string"
+        )
+      : [],
+  };
 
   const resolvedCategories =
     navbarSettings.categoryIds.length > 0
@@ -84,7 +102,12 @@ export async function getHeroConfig(): Promise<HeroConfig> {
 }
 
 export async function getFooterConfig(): Promise<FooterConfig> {
-  return getSiteConfig<FooterConfig>("footer", DEFAULT_FOOTER);
+  const config = await getSiteConfig<FooterConfig>("footer", DEFAULT_FOOTER);
+  return {
+    tagline: typeof config?.tagline === "string" ? config.tagline : "",
+    columns: Array.isArray(config?.columns) ? config.columns : [],
+    socialLinks: Array.isArray(config?.socialLinks) ? config.socialLinks : [],
+  };
 }
 
 export async function getShippingConfig(): Promise<ShippingConfig> {
@@ -108,5 +131,8 @@ export async function getCookiesConfig(): Promise<LegalConfig> {
 }
 
 export async function getCatalogConfig(): Promise<CatalogConfig> {
-  return getSiteConfig<CatalogConfig>("catalog", DEFAULT_CATALOG);
+  const config = await getSiteConfig<CatalogConfig>("catalog", DEFAULT_CATALOG);
+  return {
+    categories: Array.isArray(config?.categories) ? config.categories : DEFAULT_CATALOG.categories,
+  };
 }
