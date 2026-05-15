@@ -17,7 +17,7 @@ import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
 export default function CheckoutPage() {
-  const items = useCartStore((s) => s.items);
+  const items = useCartStore((s) => s.items ?? []);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
 
