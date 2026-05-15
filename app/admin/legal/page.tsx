@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Save, Shield, Lock, Cookie } from "lucide-react";
+import { Loader2, Save, Shield, Lock, Cookie, type LucideIcon } from "lucide-react";
 import { LegalConfig, SiteConfigKey } from "@/types";
 
-const LEGAL_PAGES: { key: SiteConfigKey; label: string; icon: any }[] = [
+const LEGAL_PAGES: { key: SiteConfigKey; label: string; icon: LucideIcon }[] = [
   { key: "terms", label: "Terms & Conditions", icon: Shield },
   { key: "privacy", label: "Privacy Policy", icon: Lock },
   { key: "cookies", label: "Cookie Policy", icon: Cookie },
@@ -28,7 +28,7 @@ export default function AdminLegalPage() {
             return { key: p.key, data: data.value };
           })
         );
-        const newConfigs: any = {};
+        const newConfigs: Partial<Record<SiteConfigKey, LegalConfig>> = {};
         results.forEach((r) => {
           newConfigs[r.key] = r.data || { content: "" };
         });

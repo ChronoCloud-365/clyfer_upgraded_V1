@@ -1,151 +1,119 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Plus, Trash2, Save, GripVertical, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import type { NavbarConfig, NavCategory, NavLink, NavSubcategory } from "@/types";
-import { DEFAULT_NAVBAR } from "@/lib/config-defaults";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Trash2, Save, Loader2, ChevronUp, ChevronDown, Check } from "lucide-react";
+import type { CatalogConfig, NavbarSettings, NavLink } from "@/types";
+import { DEFAULT_CATALOG, DEFAULT_NAVBAR_SETTINGS } from "@/lib/config-defaults";
 import { LinkPicker } from "@/components/admin/LinkPicker";
 
-function generateId() {
-  return Math.random().toString(36).slice(2);
-}
-
 export default function AdminNavbarPage() {
-  const [config, setConfig] = useState<NavbarConfig>(DEFAULT_NAVBAR);
+  const [settings, setSettings] = useState<NavbarSettings>(DEFAULT_NAVBAR_SETTINGS);
+  const [catalog, setCatalog] = useState<CatalogConfig>(DEFAULT_CATALOG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [expandedCat, setExpandedCat] = useState<string | null>("shop");
 
   useEffect(() => {
-    fetch("/api/admin/site-config?key=navbar")
-      .then((r) => r.json())
-      .then((d) => setConfig(d.value ?? DEFAULT_NAVBAR))
+    Promise.all([
+      fetch("/api/admin/site-config?key=navbar").then((r) => r.json()),
+      fetch("/api/admin/site-config?key=catalog").then((r) => r.json()),
+    ])
+      .then(([nav, cat]) => {
+        if (nav.value?.categoryIds || nav.value?.links) {
+          setSettings({
+            categoryIds: nav.value.categoryIds ?? DEFAULT_NAVBAR_SETTINGS.categoryIds,
+            links: nav.value.links ?? [],
+          });
+        }
+        if (cat.value?.categories) {
+          setCatalog(cat.value);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
+  const availableCategories = catalog.categories.length ? catalog.categories : DEFAULT_CATALOG.categories;
+  const selectedCategories = useMemo(
+    () =>
+      settings.categoryIds
+        .map((id) => availableCategories.find((category) => category.id === id))
+        .filter((category): category is CatalogConfig["categories"][number] => Boolean(category)),
+    [availableCategories, settings.categoryIds]
+  );
+
+  function toggleCategory(id: string) {
+    setSettings((current) => ({
+      ...current,
+      categoryIds: current.categoryIds.includes(id)
+        ? current.categoryIds.filter((item) => item !== id)
+        : [...current.categoryIds, id],
+    }));
+  }
+
+  function moveCategory(id: string, direction: -1 | 1) {
+    setSettings((current) => {
+      const index = current.categoryIds.indexOf(id);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.categoryIds.length) return current;
+      const next = [...current.categoryIds];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return { ...current, categoryIds: next };
+    });
+  }
+
+  function addLink() {
+    setSettings((current) => ({
+      ...current,
+      links: [...current.links, { label: "New Link", href: "/shop" }],
+    }));
+  }
+
+  function updateLink(index: number, field: keyof NavLink, value: string) {
+    setSettings((current) => ({
+      ...current,
+      links: current.links.map((link, idx) =>
+        idx === index ? { ...link, [field]: value } : link
+      ),
+    }));
+  }
+
+  function removeLink(index: number) {
+    setSettings((current) => ({
+      ...current,
+      links: current.links.filter((_, idx) => idx !== index),
+    }));
+  }
+
   async function save() {
     setSaving(true);
-    await fetch("/api/admin/site-config", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: "navbar", value: config }),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
-  // Category helpers
-  function addCategory() {
-    const id = generateId();
-    setConfig((c) => ({
-      ...c,
-      categories: [
-        ...c.categories,
-        { id, label: "New Category", href: "/shop/new", subcategories: [] },
-      ],
-    }));
-    setExpandedCat(id);
-  }
-
-  function updateCategory(id: string, field: keyof NavCategory, value: string) {
-    setConfig((c) => ({
-      ...c,
-      categories: c.categories.map((cat) =>
-        cat.id === id ? { ...cat, [field]: value } : cat
-      ),
-    }));
-  }
-
-  function removeCategory(id: string) {
-    setConfig((c) => ({
-      ...c,
-      categories: c.categories.filter((cat) => cat.id !== id),
-    }));
-  }
-
-  // Subcategory helpers
-  function addSubcategory(catId: string) {
-    setConfig((c) => ({
-      ...c,
-      categories: c.categories.map((cat) =>
-        cat.id === catId
-          ? {
-              ...cat,
-              subcategories: [
-                ...cat.subcategories,
-                { label: "New Sub", href: "/shop/new-sub", desc: "" },
-              ],
-            }
-          : cat
-      ),
-    }));
-  }
-
-  function updateSubcategory(catId: string, idx: number, field: keyof NavSubcategory, value: string) {
-    setConfig((c) => ({
-      ...c,
-      categories: c.categories.map((cat) =>
-        cat.id === catId
-          ? {
-              ...cat,
-              subcategories: cat.subcategories.map((sub, i) =>
-                i === idx ? { ...sub, [field]: value } : sub
-              ),
-            }
-          : cat
-      ),
-    }));
-  }
-
-  function removeSubcategory(catId: string, idx: number) {
-    setConfig((c) => ({
-      ...c,
-      categories: c.categories.map((cat) =>
-        cat.id === catId
-          ? { ...cat, subcategories: cat.subcategories.filter((_, i) => i !== idx) }
-          : cat
-      ),
-    }));
-  }
-
-  // Top-level link helpers
-  function addLink() {
-    setConfig((c) => ({
-      ...c,
-      links: [...c.links, { label: "New Link", href: "/new" }],
-    }));
-  }
-
-  function updateLink(idx: number, field: keyof NavLink, value: string) {
-    setConfig((c) => ({
-      ...c,
-      links: c.links.map((l, i) => (i === idx ? { ...l, [field]: value } : l)),
-    }));
-  }
-
-  function removeLink(idx: number) {
-    setConfig((c) => ({ ...c, links: c.links.filter((_, i) => i !== idx) }));
+    try {
+      await fetch("/api/admin/site-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "navbar", value: settings }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
     return (
       <div className="p-8 flex items-center gap-2 text-zinc-400">
-        <Loader2 className="size-4 animate-spin" /> Loading…
+        <Loader2 className="size-4 animate-spin" /> Loading...
       </div>
     );
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Navbar Editor</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage dropdown categories and navigation links
+            Pick categories from the shared catalog and manage top-level links.
           </p>
         </div>
         <button
@@ -155,150 +123,127 @@ export default function AdminNavbarPage() {
           style={{ background: "oklch(0.78 0.18 72)", color: "oklch(0.09 0 0)" }}
         >
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          {saved ? "Saved!" : saving ? "Saving…" : "Save Changes"}
+          {saved ? "Saved!" : saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
 
-      {/* Dropdown Categories */}
-      <section className="mb-8">
+      <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-            Dropdown Categories
-          </h2>
-          <button
-            onClick={addCategory}
-            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-          >
-            <Plus className="size-3" /> Add Category
-          </button>
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Available Categories
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Categories are created in the catalog manager first, then selected here.
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-muted text-muted-foreground">
+            {selectedCategories.length} selected
+          </span>
         </div>
 
-        <div className="space-y-3">
-          {config.categories.map((cat) => (
-            <div key={cat.id} className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
-              {/* Category header */}
-              <div className="flex items-center gap-3 p-4">
-                <GripVertical className="size-4 text-muted-foreground shrink-0" />
-                <button
-                  onClick={() => setExpandedCat(expandedCat === cat.id ? null : cat.id)}
-                  className="flex items-center gap-2 flex-1 text-left hover:opacity-80"
-                >
-                  {expandedCat === cat.id ? (
-                    <ChevronDown className="size-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="size-4 text-muted-foreground" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {availableCategories.map((category) => {
+            const active = settings.categoryIds.includes(category.id);
+            return (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => toggleCategory(category.id)}
+                className={`rounded-2xl border p-4 text-left transition-all ${
+                  active
+                    ? "border-brand bg-brand/5 shadow-sm"
+                    : "border-border bg-background hover:border-border/80"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-foreground">{category.label}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{category.href}</p>
+                  </div>
+                  {active && (
+                    <span className="text-brand">
+                      <Check className="size-4" />
+                    </span>
                   )}
-                  <span className="text-sm font-semibold text-card-foreground">{cat.label}</span>
-                  <span className="text-xs text-muted-foreground ml-1 font-medium bg-muted px-2 py-0.5 rounded-full">
-                    {cat.subcategories.length} subcategories
-                  </span>
-                </button>
-                <button
-                  onClick={() => removeCategory(cat.id)}
-                  className="text-destructive hover:text-destructive/80 transition-colors p-1"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
-
-              {/* Category fields + subcategories */}
-              {expandedCat === cat.id && (
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: "auto" }}
-                  className="border-t border-border p-4 space-y-4 bg-muted/30"
-                >
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="admin-label">Label</label>
-                      <input
-                        value={cat.label}
-                        onChange={(e) => updateCategory(cat.id, "label", e.target.value)}
-                        className="admin-input"
-                        placeholder="Category label"
-                      />
-                    </div>
-                    <div>
-                      <label className="admin-label">Href</label>
-                      <LinkPicker
-                        value={cat.href}
-                        onChange={(val) => updateCategory(cat.id, "href", val)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Subcategories */}
-                  <div className="mt-6 pt-4 border-t border-border">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Subcategories</span>
-                      <button
-                        onClick={() => addSubcategory(cat.id)}
-                        className="text-xs font-semibold text-brand hover:opacity-80 flex items-center gap-1 bg-brand/10 px-2 py-1 rounded-md"
-                      >
-                        <Plus className="size-3" /> Add Subcategory
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      {cat.subcategories.map((sub, idx) => (
-                        <div key={idx} className="flex flex-col gap-3 p-4 rounded-xl bg-card border border-border shadow-sm">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="admin-label text-[10px]">Subcategory Label</label>
-                              <input
-                                value={sub.label}
-                                onChange={(e) => updateSubcategory(cat.id, idx, "label", e.target.value)}
-                                className="admin-input text-xs"
-                                placeholder="e.g. Running Shoes"
-                              />
-                            </div>
-                            <div>
-                              <label className="admin-label text-[10px]">URL Path</label>
-                              <LinkPicker
-                                value={sub.href}
-                                onChange={(val) => updateSubcategory(cat.id, idx, "href", val)}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex gap-3 items-end">
-                            <div className="flex-1">
-                              <label className="admin-label text-[10px]">Short Description</label>
-                              <input
-                                value={sub.desc}
-                                onChange={(e) => updateSubcategory(cat.id, idx, "desc", e.target.value)}
-                                className="admin-input text-xs"
-                                placeholder="Brief description for the dropdown..."
-                              />
-                            </div>
-                            <button
-                              onClick={() => removeSubcategory(cat.id, idx)}
-                              className="bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground p-2 rounded-lg transition-colors h-[34px]"
-                              title="Delete subcategory"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      {cat.subcategories.length === 0 && (
-                        <div className="text-xs text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl">
-                          No subcategories yet. Click "Add Subcategory" to create one.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          ))}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-3">
+                  {category.subcategories.length} subcategories
+                </p>
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      {/* Top-level Links */}
-      <section>
+      <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-            Navigation Links
-          </h2>
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Selected Order
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Reorder the categories shown in the public navbar.
+            </p>
+          </div>
+        </div>
+
+        {selectedCategories.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
+            Select one or more categories from the catalog above.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {selectedCategories.map((category, index) => (
+              <div
+                key={category.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{category.label}</p>
+                  <p className="text-xs text-muted-foreground">{category.href}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => moveCategory(category.id, -1)}
+                    className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    disabled={index === 0}
+                  >
+                    <ChevronUp className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveCategory(category.id, 1)}
+                    className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                    disabled={index === selectedCategories.length - 1}
+                  >
+                    <ChevronDown className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(category.id)}
+                    className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Top-Level Links
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Add utility links like privacy, contact, or about pages.
+            </p>
+          </div>
           <button
             onClick={addLink}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
@@ -306,26 +251,34 @@ export default function AdminNavbarPage() {
             <Plus className="size-3" /> Add Link
           </button>
         </div>
-        <div className="space-y-2">
-          {config.links.map((link, idx) => (
-            <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border shadow-sm">
-              <GripVertical className="size-4 text-muted-foreground shrink-0" />
+
+        <div className="space-y-3">
+          {settings.links.map((link, index) => (
+            <div key={`${link.label}-${index}`} className="grid sm:grid-cols-[1fr_220px_auto] gap-3 items-center">
               <input
                 value={link.label}
-                onChange={(e) => updateLink(idx, "label", e.target.value)}
-                className="admin-input flex-1"
+                onChange={(e) => updateLink(index, "label", e.target.value)}
+                className="admin-input"
                 placeholder="Label"
               />
               <LinkPicker
                 value={link.href}
-                onChange={(val) => updateLink(idx, "href", val)}
-                className="flex-1"
+                onChange={(value) => updateLink(index, "href", value)}
               />
-              <button onClick={() => removeLink(idx)} className="text-destructive hover:text-destructive/80 p-1">
+              <button
+                onClick={() => removeLink(index)}
+                className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors"
+                type="button"
+              >
                 <Trash2 className="size-4" />
               </button>
             </div>
           ))}
+          {settings.links.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+              No top-level links yet.
+            </div>
+          )}
         </div>
       </section>
     </div>

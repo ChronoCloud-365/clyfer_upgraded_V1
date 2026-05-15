@@ -1,6 +1,8 @@
 import { getAllProducts } from "@/lib/products";
+import { getCatalogConfig } from "@/lib/site-config-server";
 import { ShopClient } from "./ShopClient";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 export const revalidate = 30;
 
@@ -15,10 +17,22 @@ export default async function ShopPage({
   searchParams: Promise<{ category?: string; search?: string; filter?: string }>;
 }) {
   const params = await searchParams;
-  const products = await getAllProducts({
-    category: params.category,
-    search: params.search,
-  });
+  const [products, catalog] = await Promise.all([
+    getAllProducts({
+      category: params.category,
+      search: params.search,
+    }),
+    getCatalogConfig(),
+  ]);
 
-  return <ShopClient initialProducts={products} params={params} />;
+  return (
+    <Suspense fallback={null}>
+      <ShopClient
+        key={`${params.category ?? "all"}-${params.search ?? ""}`}
+        initialProducts={products}
+        params={params}
+        categories={catalog.categories}
+      />
+    </Suspense>
+  );
 }

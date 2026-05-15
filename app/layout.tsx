@@ -3,6 +3,8 @@ import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -18,7 +20,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Clyfer — Premium Footwear",
+    default: "Clyfer - Premium Footwear",
     template: "%s | Clyfer",
   },
   description:
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://clyfer.vercel.app",
     siteName: "Clyfer",
-    title: "Clyfer — Premium Footwear",
+    title: "Clyfer - Premium Footwear",
     description: "Step into your era. Premium footwear crafted for those who move forward.",
     images: [
       {
@@ -44,7 +46,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Clyfer — Premium Footwear",
+    title: "Clyfer - Premium Footwear",
     description: "Step into your era. Premium footwear for those who move forward.",
   },
   robots: {
@@ -52,8 +54,6 @@ export const metadata: Metadata = {
     follow: true,
   },
 };
-
-import { CartDrawer } from "@/components/cart/CartDrawer";
 
 export default function RootLayout({
   children,
@@ -71,9 +71,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <CartDrawer />
-          <Toaster richColors position="bottom-right" />
+          <AuthProvider>
+            {children}
+            <CartDrawer />
+            <Toaster richColors position="bottom-right" />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

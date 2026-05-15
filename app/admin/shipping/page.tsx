@@ -35,7 +35,7 @@ export default function AdminShippingPage() {
 
       if (!res.ok) throw new Error("Failed to save");
       toast.success("Shipping configuration updated!");
-    } catch (err) {
+    } catch {
       toast.error("Failed to save configuration");
     } finally {
       setSaving(false);
@@ -117,7 +117,7 @@ export default function AdminShippingPage() {
 
         <div className="rounded-2xl bg-brand/5 border border-brand/10 p-5">
           <p className="text-sm text-brand font-medium">
-            💡 These rates will be automatically applied at the checkout based on the customer's selected area.
+            💡 These rates will be automatically applied at checkout based on the customer&apos;s selected area.
           </p>
         </div>
       </div>

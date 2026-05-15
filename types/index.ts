@@ -17,6 +17,7 @@ export interface Product {
   description: string;
   images: string[];
   category: ProductCategory;
+  subcategory?: string;
   sizes: number[];
   colors: ProductColor[];
   tags: string[];
@@ -88,6 +89,30 @@ export interface NavbarConfig {
   links: NavLink[];
 }
 
+export interface NavbarSettings {
+  categoryIds: string[];
+  links: NavLink[];
+}
+
+export interface CatalogSubcategory {
+  id: string;
+  label: string;
+  href: string;
+  desc: string;
+}
+
+export interface CatalogCategory {
+  id: string;
+  label: string;
+  href: string;
+  description?: string;
+  subcategories: CatalogSubcategory[];
+}
+
+export interface CatalogConfig {
+  categories: CatalogCategory[];
+}
+
 export interface HeroSlide {
   id: string;
   badge?: string;
@@ -116,14 +141,41 @@ export interface FeaturedConfig {
   sections: FeaturedSectionConfig[];
 }
 
-export interface FooterLink {
+export interface FooterLinkItem {
+  type: "link";
   label: string;
   href: string;
 }
 
+export interface FooterTextItem {
+  type: "text";
+  content: string;
+}
+
+export interface FooterIconItem {
+  type: "icon";
+  label: string;
+  iconName: string;
+  href?: string;
+}
+
+export interface FooterImageItem {
+  type: "image";
+  label: string;
+  imageUrl: string;
+  alt?: string;
+  href?: string;
+}
+
+export type FooterItem =
+  | FooterLinkItem
+  | FooterTextItem
+  | FooterIconItem
+  | FooterImageItem;
+
 export interface FooterColumn {
   heading: string;
-  links: FooterLink[];
+  items: FooterItem[];
 }
 
 export interface FooterConfig {
@@ -143,6 +195,7 @@ export interface ShippingConfig {
 
 export type SiteConfigKey =
   | "navbar"
+  | "catalog"
   | "hero"
   | "featured"
   | "footer"

@@ -123,9 +123,6 @@ export default function AdminLoginPage() {
             <LoginForm />
           </Suspense>
 
-          <p className="text-center text-muted-foreground/70 text-xs mt-6">
-            Default password: <code className="text-muted-foreground">clyfer_admin_2024</code>
-          </p>
         </div>
       </motion.div>
     </div>

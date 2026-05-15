@@ -9,15 +9,16 @@ import {
   CheckCircle2,
   Loader2,
   ArrowLeft,
-  Phone,
   MapPin,
   User,
+  Trash2,
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
+  const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
 
   const [form, setForm] = useState({
@@ -38,7 +39,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     async function loadRates() {
       try {
-        const res = await fetch("/api/admin/site-config?key=shipping");
+        const res = await fetch("/api/site-config?key=shipping");
         if (res.ok) {
           const data = await res.json();
           if (data.value) {
@@ -60,9 +61,12 @@ export default function CheckoutPage() {
     0
   );
 
-  const shippingCost = subtotal > 0
-    ? (form.shipping_area === "inside" ? shippingRates.inside : shippingRates.outside)
-    : 0;
+  const shippingCost =
+    subtotal > 0
+      ? form.shipping_area === "inside"
+        ? shippingRates.inside
+        : shippingRates.outside
+      : 0;
 
   const total = subtotal + shippingCost;
 
@@ -82,21 +86,26 @@ export default function CheckoutPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...form,
+            customer_name: form.customer_name,
             phone: `${form.phone}${form.phone2 ? ` / ${form.phone2}` : ""}`,
+            address: form.address,
+            city: form.city,
+            notes: form.notes,
             product_id: item.product.id,
             product_name: item.product.name,
             size: item.size,
             color: item.color?.name ?? "",
             quantity: item.quantity,
-            total_price: item.product.price * item.quantity + (shippingCost / items.length),
+            total_price: item.product.price * item.quantity + shippingCost / items.length,
           }),
         });
+
         if (!res.ok) {
           const d = await res.json();
           throw new Error(d.error ?? "Order failed");
         }
       }
+
       clearCart();
       setSuccess(true);
     } catch (err: unknown) {
@@ -117,11 +126,9 @@ export default function CheckoutPage() {
           <div className="size-20 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="size-10 text-green-500" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-3">
-            Order Placed!
-          </h1>
+          <h1 className="text-2xl font-bold text-foreground mb-3">Order Placed!</h1>
           <p className="text-muted-foreground mb-8">
-            Thank you! Your order has been placed. We'll call you on{" "}
+            Thank you! Your order has been placed. We&apos;ll call you on{" "}
             <strong>{form.phone}</strong> to confirm.
           </p>
           <Link
@@ -151,7 +158,9 @@ export default function CheckoutPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold text-foreground tracking-normal">CHECKOUT</h1>
-            <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Cash on Delivery</p>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-wide">
+              Cash on Delivery
+            </p>
           </div>
         </div>
 
@@ -197,7 +206,7 @@ export default function CheckoutPage() {
 
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1 flex items-center gap-1">
+                          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1">
                             Phone Number 1 <span className="text-red-500">*</span>
                           </label>
                           <input
@@ -244,12 +253,23 @@ export default function CheckoutPage() {
                           )}
                         >
                           <div className="flex justify-between items-center mb-1">
-                            <span className={cn("text-sm font-bold tracking-normal", form.shipping_area === "inside" ? "text-amber-700" : "text-foreground")}>
+                            <span
+                              className={cn(
+                                "text-sm font-bold tracking-normal",
+                                form.shipping_area === "inside"
+                                  ? "text-amber-700"
+                                  : "text-foreground"
+                              )}
+                            >
                               INSIDE DHAKA
                             </span>
-                            {form.shipping_area === "inside" && <div className="size-2 rounded-full bg-amber-500" />}
+                            {form.shipping_area === "inside" && (
+                              <div className="size-2 rounded-full bg-amber-500" />
+                            )}
                           </div>
-                          <span className="text-xs font-bold text-muted-foreground tracking-wide">৳{shippingRates.inside} FLAT RATE</span>
+                          <span className="text-xs font-bold text-muted-foreground tracking-wide">
+                            ৳{shippingRates.inside} FLAT RATE
+                          </span>
                         </button>
 
                         <button
@@ -263,12 +283,23 @@ export default function CheckoutPage() {
                           )}
                         >
                           <div className="flex justify-between items-center mb-1">
-                            <span className={cn("text-sm font-bold tracking-normal", form.shipping_area === "outside" ? "text-amber-700" : "text-foreground")}>
+                            <span
+                              className={cn(
+                                "text-sm font-bold tracking-normal",
+                                form.shipping_area === "outside"
+                                  ? "text-amber-700"
+                                  : "text-foreground"
+                              )}
+                            >
                               OUTSIDE DHAKA
                             </span>
-                            {form.shipping_area === "outside" && <div className="size-2 rounded-full bg-amber-500" />}
+                            {form.shipping_area === "outside" && (
+                              <div className="size-2 rounded-full bg-amber-500" />
+                            )}
                           </div>
-                          <span className="text-xs font-bold text-muted-foreground tracking-wide">৳{shippingRates.outside} FLAT RATE</span>
+                          <span className="text-xs font-bold text-muted-foreground tracking-wide">
+                            ৳{shippingRates.outside} FLAT RATE
+                          </span>
                         </button>
                       </div>
 
@@ -285,7 +316,7 @@ export default function CheckoutPage() {
                           placeholder="House, Road, Area, City"
                         />
                       </div>
-                      
+
                       <div>
                         <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block ml-1">
                           Order Notes (Optional)
@@ -304,7 +335,7 @@ export default function CheckoutPage() {
 
                 {error && (
                   <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-sm rounded-2xl px-5 py-4 font-medium">
-                    ⚠️ {error}
+                    ⚠ {error}
                   </div>
                 )}
 
@@ -344,11 +375,12 @@ export default function CheckoutPage() {
                 <div className="px-6 py-5 border-b border-border bg-muted/10">
                   <h2 className="text-xs font-bold uppercase tracking-wide">Order Summary</h2>
                 </div>
-                
+
                 <div className="p-6 space-y-6 max-h-[40vh] overflow-y-auto">
                   {items.map((item) => (
                     <div key={`${item.product.id}-${item.size}-${item.color?.name ?? ""}`} className="flex gap-4">
                       <div className="size-20 rounded-2xl overflow-hidden bg-muted shrink-0 border border-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.product.images?.[0] ?? ""}
                           alt={item.product.name}
@@ -356,12 +388,26 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col">
-                        <p className="text-sm font-bold text-foreground truncate uppercase tracking-tight">
-                          {item.product.name}
-                        </p>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mt-0.5">
-                          SIZE: {item.size} · QTY: {item.quantity}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-foreground truncate uppercase tracking-tight">
+                              {item.product.name}
+                            </p>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mt-0.5">
+                              SIZE: {item.size} · QTY: {item.quantity}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeItem(item.product.id, item.size, item.color?.name ?? "")
+                            }
+                            className="text-muted-foreground hover:text-red-500 transition-colors"
+                            aria-label={`Remove ${item.product.name}`}
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
                         <p className="text-sm font-bold mt-auto">
                           ৳{(item.product.price * item.quantity).toLocaleString()}
                         </p>
@@ -388,7 +434,7 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="px-6 py-4 bg-muted/20 border-t border-border text-center">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                     Estimated Delivery: {form.shipping_area === "inside" ? "24-48 Hours" : "3-5 Days"}

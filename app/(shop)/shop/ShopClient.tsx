@@ -1,20 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Star, Search, SlidersHorizontal } from "lucide-react";
-import type { Product } from "@/types";
-
-const CATEGORIES = [
-  { label: "All", value: "all" },
-  { label: "Running", value: "running" },
-  { label: "Casual", value: "casual" },
-  { label: "Formal", value: "formal" },
-  { label: "Sports", value: "sports" },
-  { label: "Limited", value: "limited" },
-];
+import { Star, Search } from "lucide-react";
+import type { Product, CatalogCategory } from "@/types";
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
@@ -26,114 +17,160 @@ const SORT_OPTIONS = [
 interface Props {
   initialProducts: Product[];
   params: { category?: string; search?: string; filter?: string };
+  categories: CatalogCategory[];
 }
 
-export function ShopClient({ initialProducts, params }: Props) {
+export function ShopClient({ initialProducts, params, categories }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState(params.search ?? "");
   const [activeCategory, setActiveCategory] = useState(params.category ?? "all");
-  const [sort, setSort] = useState("newest");
+  const [sort, setSort] = useState<"newest" | "price_asc" | "price_desc" | "rating">("newest");
+
+  const visibleCategories = useMemo(
+    () => [
+      { label: "All", value: "all", href: "/shop" },
+      ...categories.map((category) => ({
+        label: category.label,
+        value: category.id,
+        href: category.href,
+      })),
+    ],
+    [categories]
+  );
 
   const filtered = useMemo(() => {
     let list = [...initialProducts];
+
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.tags.some((t) => t.includes(q))
+        (product) =>
+          product.name.toLowerCase().includes(q) ||
+          product.brand.toLowerCase().includes(q) ||
+          product.tags.some((tag) => tag.includes(q))
       );
     }
+
     if (activeCategory !== "all") {
-      list = list.filter((p) => p.category === activeCategory);
+      list = list.filter((product) => product.category === activeCategory);
     }
+
     switch (sort) {
-      case "price_asc": list.sort((a, b) => a.price - b.price); break;
-      case "price_desc": list.sort((a, b) => b.price - a.price); break;
-      case "rating": list.sort((a, b) => b.rating - a.rating); break;
+      case "price_asc":
+        list.sort((a, b) => a.price - b.price);
+        break;
+      case "price_desc":
+        list.sort((a, b) => b.price - a.price);
+        break;
+      case "rating":
+        list.sort((a, b) => b.rating - a.rating);
+        break;
+      default:
+        break;
     }
+
     return list;
   }, [initialProducts, search, activeCategory, sort]);
+
+  function updateUrl(next: { search?: string; category?: string }) {
+    const query = new URLSearchParams(searchParams.toString());
+
+    if (next.search !== undefined) {
+      if (next.search) query.set("search", next.search);
+      else query.delete("search");
+    }
+
+    if (next.category !== undefined) {
+      if (next.category && next.category !== "all") query.set("category", next.category);
+      else query.delete("category");
+    }
+
+    const qs = query.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname);
+  }
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    updateUrl({ search: search.trim() });
+  }
+
+  function handleCategoryClick(category: string) {
+    setActiveCategory(category);
+    updateUrl({ category });
+  }
 
   return (
     <div className="min-h-screen bg-background pt-24 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            Shop All
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {filtered.length} products
-          </p>
+          <h1 className="text-3xl font-black tracking-tight text-foreground">Shop All</h1>
+          <p className="text-muted-foreground mt-1">{filtered.length} products</p>
         </div>
 
-        {/* Filters bar */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          {/* Search */}
-          <div className="relative flex-1 max-w-sm">
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search shoes…"
+              placeholder="Search shoes..."
               className="w-full pl-9 pr-4 py-2.5 rounded-xl border bg-background text-sm focus:outline-none focus:ring-2 ring-ring"
             />
-          </div>
+          </form>
 
-          {/* Sort */}
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value)}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
             className="px-4 py-2.5 rounded-xl border bg-background text-sm focus:outline-none"
           >
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Category tabs */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((cat) => (
+          {visibleCategories.map((category) => (
             <button
-              key={cat.value}
-              onClick={() => setActiveCategory(cat.value)}
+              key={category.value}
+              onClick={() => handleCategoryClick(category.value)}
               className={`whitespace-nowrap px-5 py-2 rounded-xl text-sm font-medium transition-all border ${
-                activeCategory === cat.value
+                activeCategory === category.value
                   ? "border-transparent text-zinc-900 dark:text-zinc-900"
                   : "border-border text-muted-foreground hover:text-foreground hover:border-zinc-400"
               }`}
               style={
-                activeCategory === cat.value
+                activeCategory === category.value
                   ? { background: "oklch(0.78 0.18 72)" }
                   : {}
               }
             >
-              {cat.label}
+              {category.label}
             </button>
           ))}
         </div>
 
-        {/* Products grid */}
         {filtered.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-muted-foreground">No products found.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            {filtered.map((product, i) => {
+            {filtered.map((product, index) => {
               const discount = product.original_price
                 ? Math.round((1 - product.price / product.original_price) * 100)
                 : null;
+
               return (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
+                  transition={{ delay: index * 0.04 }}
                 >
                   <Link href={`/shop/${product.slug}`} className="group block">
                     <div className="relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-square mb-3">

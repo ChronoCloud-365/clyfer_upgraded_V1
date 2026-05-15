@@ -1,5 +1,6 @@
 import { getProductBySlug } from "@/lib/products";
 import { getAllProducts } from "@/lib/products";
+import { getCatalogConfig } from "@/lib/site-config-server";
 import { ProductDetailClient } from "./ProductDetailClient";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -33,7 +34,8 @@ export default async function ProductDetailPage({
   
   if (!product) {
     // Smart fallback: if slug matches a category, redirect to shop
-    const categories = ["running", "casual", "formal", "sports", "limited"];
+    const catalog = await getCatalogConfig();
+    const categories = catalog.categories.map((category) => category.id);
     if (categories.includes(slug.toLowerCase())) {
       const { redirect } = await import("next/navigation");
       redirect(`/shop?category=${slug.toLowerCase()}`);

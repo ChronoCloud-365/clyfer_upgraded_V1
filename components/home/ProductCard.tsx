@@ -25,7 +25,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
     
     // Use first available size and color, or fallbacks
     const size = product.sizes?.[0] || 40;
-    const color = product.colors?.[0] || { name: "Default", value: "#000" };
+    const color = product.colors?.[0] || { name: "Default", hex: "#000" };
 
     addItem(product, size, color);
     setCartOpen(true);

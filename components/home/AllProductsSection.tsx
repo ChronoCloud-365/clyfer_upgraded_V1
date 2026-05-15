@@ -2,28 +2,38 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, SlidersHorizontal } from "lucide-react";
-import type { Product } from "@/types";
+import { Filter } from "lucide-react";
+import type { CatalogCategory, Product } from "@/types";
 import { ProductCard } from "./ProductCard";
 
 interface Props {
   products: Product[];
+  categories?: CatalogCategory[];
 }
 
-const CATEGORIES = ["All", "Casual", "Running", "Formal", "Sports", "Limited"];
-
-export function AllProductsSection({ products }: Props) {
+export function AllProductsSection({ products, categories = [] }: Props) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc">("newest");
+  const visibleCategories = categories.length
+    ? [
+        { label: "All", value: "All" },
+        ...categories.map((category) => ({ label: category.label, value: category.id })),
+      ]
+    : [
+        { label: "All", value: "All" },
+        { label: "Casual", value: "casual" },
+        { label: "Running", value: "running" },
+        { label: "Formal", value: "formal" },
+        { label: "Sports", value: "sports" },
+        { label: "Limited", value: "limited" },
+      ];
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
 
     // Filter
     if (activeCategory !== "All") {
-      result = result.filter(
-        (p) => p.category.toLowerCase() === activeCategory.toLowerCase()
-      );
+      result = result.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase());
     }
 
     // Sort
@@ -56,17 +66,17 @@ export function AllProductsSection({ products }: Props) {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
           {/* Categories */}
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {CATEGORIES.map((cat) => (
+            {visibleCategories.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
+                key={cat.value}
+                onClick={() => setActiveCategory(cat.value)}
                 className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${
-                  activeCategory === cat
+                  activeCategory === cat.value
                     ? "bg-foreground text-background shadow-lg scale-105"
                     : "bg-background border border-border text-muted-foreground hover:text-foreground hover:border-foreground/20"
                 }`}
               >
-                {cat}
+                {cat.label}
               </button>
             ))}
           </div>
@@ -76,7 +86,7 @@ export function AllProductsSection({ products }: Props) {
             <Filter className="size-4 text-muted-foreground hidden sm:block" />
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as "newest" | "price_asc" | "price_desc")}
               className="w-full sm:w-auto bg-background border border-border rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand/50"
             >
               <option value="newest">Newest Arrivals</option>

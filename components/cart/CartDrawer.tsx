@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
-import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cart";
-import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -16,11 +14,11 @@ import { Separator } from "@/components/ui/separator";
 
 export function CartDrawer() {
   const { items, isOpen, setCartOpen, updateQuantity, removeItem, totalPrice, totalItems } = useCartStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false
+  );
 
   if (!mounted) return null;
 
@@ -35,14 +33,14 @@ export function CartDrawer() {
         </SheetHeader>
 
         {items.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-            <div className="size-20 rounded-full bg-muted flex items-center justify-center mb-6">
-              <ShoppingBag className="size-8 text-muted-foreground/40" />
-            </div>
-            <h3 className="text-lg font-bold text-foreground mb-2">Your cart is empty</h3>
-            <p className="text-sm text-muted-foreground mb-8 max-w-[240px]">
-              Looks like you haven't added any premium footwear to your cart yet.
-            </p>
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <div className="size-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                <ShoppingBag className="size-8 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-lg font-bold text-foreground mb-2">Your cart is empty</h3>
+              <p className="text-sm text-muted-foreground mb-8 max-w-[240px]">
+              Looks like you haven&apos;t added any premium footwear to your cart yet.
+              </p>
             <button
               onClick={() => setCartOpen(false)}
               className="px-8 py-3 rounded-xl bg-foreground text-background text-sm font-bold transition-all hover:opacity-90"

@@ -1,46 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+import { orderWriteSchema } from "@/lib/config-schemas";
+
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const {
-    customer_name,
-    phone,
-    address,
-    city,
-    product_id,
-    product_name,
-    size,
-    color,
-    quantity,
-    total_price,
-    notes,
-  } = body;
+  const parsed = orderWriteSchema.safeParse(body);
 
-  // Basic validation
-  if (!customer_name || !phone || !address || !product_name || !total_price) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.message }, { status: 400 });
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const { data, error } = await supabase
       .from("orders")
       .insert({
-        customer_name,
-        phone,
-        address,
-        city: city ?? "",
-        product_id: product_id ?? null,
-        product_name,
-        size: size ?? null,
-        color: color ?? null,
-        quantity: quantity ?? 1,
-        total_price,
-        notes: notes ?? "",
+        ...parsed.data,
         status: "pending",
       })
       .select()

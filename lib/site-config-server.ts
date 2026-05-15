@@ -1,20 +1,24 @@
 import { createClient } from "./supabase/server";
 import { 
   DEFAULT_NAVBAR, 
+  DEFAULT_NAVBAR_SETTINGS,
   DEFAULT_HERO, 
   DEFAULT_FOOTER, 
   DEFAULT_SHIPPING,
   DEFAULT_FEATURED,
-  DEFAULT_LEGAL
+  DEFAULT_LEGAL,
+  DEFAULT_CATALOG
 } from "./config-defaults";
 import type { 
   NavbarConfig, 
+  NavbarSettings,
   HeroConfig, 
   FooterConfig, 
   ShippingConfig, 
   FeaturedConfig,
   LegalConfig,
-  SiteConfigKey 
+  SiteConfigKey,
+  CatalogConfig
 } from "@/types";
 
 /**
@@ -38,7 +42,41 @@ export async function getSiteConfig<T>(key: SiteConfigKey, defaultValue: T): Pro
 }
 
 export async function getNavbarConfig(): Promise<NavbarConfig> {
-  return getSiteConfig<NavbarConfig>("navbar", DEFAULT_NAVBAR);
+  const [navbarSettings, catalog] = await Promise.all([
+    getSiteConfig<NavbarSettings>("navbar", DEFAULT_NAVBAR_SETTINGS),
+    getCatalogConfig(),
+  ]);
+
+  const resolvedCategories =
+    navbarSettings.categoryIds.length > 0
+      ? navbarSettings.categoryIds
+          .map((id) => catalog.categories.find((category) => category.id === id))
+          .filter(Boolean)
+          .map((category) => ({
+            id: category!.id,
+            label: category!.label,
+            href: category!.href,
+            subcategories: category!.subcategories.map((sub) => ({
+              label: sub.label,
+              href: sub.href,
+              desc: sub.desc,
+            })),
+          }))
+      : catalog.categories.map((category) => ({
+          id: category.id,
+          label: category.label,
+          href: category.href,
+          subcategories: category.subcategories.map((sub) => ({
+            label: sub.label,
+            href: sub.href,
+            desc: sub.desc,
+          })),
+        }));
+
+  return {
+    categories: resolvedCategories.length ? resolvedCategories : DEFAULT_NAVBAR.categories,
+    links: navbarSettings.links,
+  };
 }
 
 export async function getHeroConfig(): Promise<HeroConfig> {
@@ -67,4 +105,8 @@ export async function getPrivacyConfig(): Promise<LegalConfig> {
 
 export async function getCookiesConfig(): Promise<LegalConfig> {
   return getSiteConfig<LegalConfig>("cookies", DEFAULT_LEGAL);
+}
+
+export async function getCatalogConfig(): Promise<CatalogConfig> {
+  return getSiteConfig<CatalogConfig>("catalog", DEFAULT_CATALOG);
 }

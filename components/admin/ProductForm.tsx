@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus } from "lucide-react";
-import type { Product, ProductCategory } from "@/types";
+import { Loader2 } from "lucide-react";
+import type { CatalogConfig, Product, ProductCategory } from "@/types";
 import { CloudinaryUpload } from "./CloudinaryUpload";
+import { DEFAULT_CATALOG } from "@/lib/config-defaults";
 
-const SUGGESTED_CATEGORIES: ProductCategory[] = ["running", "casual", "formal", "sports", "limited", "sneakers", "boots"];
 const SIZE_OPTIONS = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46];
 
 interface Props {
@@ -25,12 +25,34 @@ export function ProductForm({ initial = {}, productId }: Props) {
   const [price, setPrice] = useState(String(initial.price ?? ""));
   const [originalPrice, setOriginalPrice] = useState(String(initial.original_price ?? ""));
   const [category, setCategory] = useState<ProductCategory>(initial.category ?? "casual");
+  const [subcategory, setSubcategory] = useState(initial.subcategory ?? "");
   const [description, setDescription] = useState(initial.description ?? "");
   const [images, setImages] = useState<string[]>(initial.images ?? []);
   const [sizes, setSizes] = useState<number[]>(initial.sizes ?? []);
   const [tags, setTags] = useState((initial.tags ?? []).join(", "));
   const [isFeatured, setIsFeatured] = useState(initial.is_featured ?? false);
   const [inStock, setInStock] = useState(initial.in_stock ?? true);
+  const [catalog, setCatalog] = useState<CatalogConfig>(DEFAULT_CATALOG);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/admin/site-config?key=catalog")
+      .then((r) => r.json())
+      .then((d) => {
+        if (active && d.value) setCatalog(d.value);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const categories = catalog.categories.length ? catalog.categories : DEFAULT_CATALOG.categories;
+  const activeCategory = useMemo(
+    () => categories.find((item) => item.id === category) ?? categories[0],
+    [categories, category]
+  );
+  const subcategoryOptions = activeCategory?.subcategories ?? [];
 
   function autoSlug(n: string) {
     return n.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -53,6 +75,7 @@ export function ProductForm({ initial = {}, productId }: Props) {
       price: Number(price),
       original_price: originalPrice ? Number(originalPrice) : null,
       category,
+      subcategory: subcategory || null,
       description: description.trim(),
       images: images.filter(Boolean),
       sizes,
@@ -127,18 +150,37 @@ export function ProductForm({ initial = {}, productId }: Props) {
           </div>
           <div>
             <label className="admin-label">Category *</label>
-            <input
-              list="category-suggestions"
+            <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setCategory(next);
+                setSubcategory("");
+              }}
               className="admin-input capitalize"
-              placeholder="e.g. sneakers"
-            />
-            <datalist id="category-suggestions">
-              {SUGGESTED_CATEGORIES.map((c) => (
-                <option key={c} value={c} />
+            >
+              {categories.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
               ))}
-            </datalist>
+            </select>
+          </div>
+          <div>
+            <label className="admin-label">Subcategory</label>
+            <select
+              value={subcategory}
+              onChange={(e) => setSubcategory(e.target.value)}
+              className="admin-input capitalize"
+              disabled={subcategoryOptions.length === 0}
+            >
+              <option value="">No subcategory</option>
+              {subcategoryOptions.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-center gap-6 pt-5">
             <label className="flex items-center gap-2 cursor-pointer">

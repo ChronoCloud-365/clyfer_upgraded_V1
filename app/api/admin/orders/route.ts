@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
+import { requireAdminSession } from "@/lib/admin-auth";
+
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+const statusUpdateSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["pending", "confirmed", "shipped", "delivered", "cancelled"]),
+});
 
 export async function GET(request: NextRequest) {
+  const unauthorized = requireAdminSession(request);
+  if (unauthorized) return unauthorized;
+
   const status = request.nextUrl.searchParams.get("status");
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     let query = supabase
       .from("orders")
       .select("*")
@@ -13,18 +30,27 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ orders: data ?? [] });
-  } catch {
-    return NextResponse.json({ orders: [] });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
-  const { id, status } = await request.json();
-  const supabase = await createClient();
+  const unauthorized = requireAdminSession(request);
+  if (unauthorized) return unauthorized;
+
+  const body = await request.json();
+  const parsed = statusUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.message }, { status: 400 });
+  }
+
+  const supabase = getAdminClient();
   const { error } = await supabase
     .from("orders")
-    .update({ status })
-    .eq("id", id);
+    .update({ status: parsed.data.status })
+    .eq("id", parsed.data.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

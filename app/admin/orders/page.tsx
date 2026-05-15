@@ -31,7 +31,6 @@ export default function AdminOrdersPage() {
       filter === "all"
         ? "/api/admin/orders"
         : `/api/admin/orders?status=${filter}`;
-    setLoading(true);
     fetch(url)
       .then((r) => r.json())
       .then((d) => setOrders(d.orders ?? []))
@@ -70,7 +69,10 @@ export default function AdminOrdersPage() {
         {["all", ...STATUS_OPTIONS].map((s) => (
           <button
             key={s}
-            onClick={() => setFilter(s)}
+            onClick={() => {
+              setLoading(true);
+              setFilter(s);
+            }}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize border ${
               filter === s
                 ? "bg-brand/10 text-brand border-brand/30"

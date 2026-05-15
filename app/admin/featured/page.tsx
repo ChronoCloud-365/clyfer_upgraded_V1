@@ -133,7 +133,7 @@ export default function AdminFeaturedPage() {
       </div>
 
       <div className="space-y-10">
-        {config.sections.map((section, sectionIdx) => (
+        {config.sections.map((section) => (
           <div
             key={section.id}
             className="rounded-[2.5rem] border border-border bg-card overflow-hidden shadow-sm"

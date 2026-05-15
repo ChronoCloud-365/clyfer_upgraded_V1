@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Navigation,
+  LayoutGrid,
   Image,
   Star,
   Package,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { label: "Catalog", href: "/admin/catalog", icon: LayoutGrid },
   { label: "Navbar", href: "/admin/navbar", icon: Navigation },
   { label: "Hero Slider", href: "/admin/hero", icon: Image },
   { label: "Featured", href: "/admin/featured", icon: Star },

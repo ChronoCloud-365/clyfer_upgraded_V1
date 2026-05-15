@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CldUploadWidget } from "next-cloudinary";
+import { CldUploadWidget, type CloudinaryUploadWidgetResults } from "next-cloudinary";
 import { ImagePlus, Trash2, GripHorizontal } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -23,8 +23,12 @@ export function CloudinaryUpload({
 }: CloudinaryUploadProps) {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
-  const onUpload = (result: any) => {
-    onAddImage(result.info.secure_url);
+  const onUpload = (result: CloudinaryUploadWidgetResults) => {
+    const url =
+      typeof result.info === "object" && result.info && "secure_url" in result.info
+        ? result.info.secure_url
+        : undefined;
+    if (url) onAddImage(url);
   };
 
   const handleDragStart = (idx: number) => setDraggedIdx(idx);
@@ -86,7 +90,7 @@ export function CloudinaryUpload({
       {value.length < maxFiles && (
         <CldUploadWidget
           uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
-          onSuccess={onUpload}
+          onSuccess={(result) => onUpload(result)}
           options={{ multiple: true }}
         >
           {({ open }) => {

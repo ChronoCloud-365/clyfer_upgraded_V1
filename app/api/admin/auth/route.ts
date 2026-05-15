@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 const ADMIN_COOKIE = "clyfer_admin_session";
 

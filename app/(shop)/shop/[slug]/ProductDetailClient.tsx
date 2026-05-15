@@ -8,7 +8,6 @@ import {
   Star,
   ShoppingCart,
   CreditCard,
-  ChevronLeft,
   Check,
   Minus,
   Plus,
@@ -76,7 +75,6 @@ export function ProductDetailClient({ product }: Props) {
           {/* Image gallery */}
           <div>
             <div className="relative overflow-hidden rounded-3xl bg-zinc-100 dark:bg-zinc-800 aspect-square mb-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <motion.img
                 key={activeImage}
                 initial={{ opacity: 0 }}
@@ -101,7 +99,6 @@ export function ProductDetailClient({ product }: Props) {
                       i === activeImage ? "border-brand" : "border-transparent"
                     }`}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}

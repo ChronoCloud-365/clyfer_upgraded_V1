@@ -19,8 +19,12 @@ async function getStats() {
       supabase.from("orders").select("id, status, total_price", { count: "exact" }),
     ]);
 
-    const products = productsRes.data ?? [];
-    const orders = ordersRes.data ?? [];
+    const products = (productsRes.data ?? []) as { id: string }[];
+    const orders = (ordersRes.data ?? []) as {
+      id: string;
+      status?: string;
+      total_price?: number;
+    }[];
     const revenue = orders.reduce((sum, o) => sum + (o.total_price ?? 0), 0);
     const pending = orders.filter((o) => o.status === "pending").length;
 
