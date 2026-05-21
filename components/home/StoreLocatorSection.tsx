@@ -1,4 +1,5 @@
 import { MapPin, Phone, Clock } from "lucide-react";
+import { getMapEmbedUrl } from "@/lib/map-embed";
 import type { StoreLocatorConfig } from "@/types";
 
 interface Props {
@@ -7,6 +8,8 @@ interface Props {
 
 export function StoreLocatorSection({ config }: Props) {
   if (!config.enabled) return null;
+
+  const embedSrc = getMapEmbedUrl(config.mapUrl, config.address, config.name);
 
   return (
     <section className="bg-muted/40 border-t border-border py-16">
@@ -57,19 +60,18 @@ export function StoreLocatorSection({ config }: Props) {
             )}
           </div>
 
-          {config.mapUrl && (
-            <div className="rounded-2xl overflow-hidden border bg-muted aspect-video lg:aspect-square">
-              <iframe
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(config.address || config.name)}&output=embed`}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Store location"
-              />
-            </div>
-          )}
+          <div className="rounded-2xl overflow-hidden border bg-muted aspect-video lg:aspect-square">
+            <iframe
+              src={embedSrc}
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Store location"
+              allowFullScreen
+            />
+          </div>
         </div>
       </div>
     </section>

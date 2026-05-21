@@ -5,6 +5,7 @@ import { MapPin, Save, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { DEFAULT_STORE_LOCATOR } from "@/lib/config-defaults";
+import { getMapEmbedUrl } from "@/lib/map-embed";
 import type { StoreLocatorConfig } from "@/types";
 
 export default function AdminStoreLocatorPage() {
@@ -137,7 +138,7 @@ export default function AdminStoreLocatorPage() {
               className="admin-input"
               placeholder="https://maps.app.goo.gl/..."
             />
-            <p className="text-[10px] text-muted-foreground italic">Paste the share link from Google Maps</p>
+            <p className="text-[10px] text-muted-foreground italic">Paste the full Google Maps URL (contains @lat,lng) for accurate map embed. Short links (maps.app.goo.gl) won't show the map.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -169,13 +170,14 @@ export default function AdminStoreLocatorPage() {
       {config.mapUrl && (
         <div className="rounded-2xl overflow-hidden border aspect-video">
           <iframe
-            src={`https://maps.google.com/maps?q=${encodeURIComponent(config.address || config.name)}&output=embed`}
+            src={getMapEmbedUrl(config.mapUrl, config.address, config.name)}
             width="100%"
             height="100%"
             style={{ border: 0 }}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
             title="Store location preview"
+            allowFullScreen
           />
         </div>
       )}

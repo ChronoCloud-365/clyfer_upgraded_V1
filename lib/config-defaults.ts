@@ -87,10 +87,10 @@ export const DEFAULT_LEGAL: LegalConfig = {
 };
 
 export const DEFAULT_STORE_LOCATOR: StoreLocatorConfig = {
-  enabled: false,
+  enabled: true,
   name: "Clyfar Fashion",
-  address: "",
-  mapUrl: "https://maps.app.goo.gl/veuUzpmDRLGLLoVK8",
+  address: "P9P9+C7 Dhaka",
+  mapUrl: "https://www.google.com/maps/place/CLYFAR+FASHION/@23.7360762,90.3682281,17z/data=!3m1!4b1!4m6!3m5!1s0x3755bf0022f40c9f:0x7246b3274c57dbe5!8m2!3d23.7360762!4d90.3682281!16s%2Fg%2F11vqd0zdmm",
   phone: "",
   hours: "",
 };
