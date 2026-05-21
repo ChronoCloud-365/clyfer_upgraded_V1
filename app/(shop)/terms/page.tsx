@@ -2,8 +2,8 @@ import { getTermsConfig } from "@/lib/site-config-server";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions | Clyfer",
-  description: "Terms and conditions for using Clyfer services",
+  title: "Terms and Conditions | Clyfar Fashion",
+  description: "Terms and conditions for using Clyfar Fashion services",
 };
 
 export default async function TermsPage() {

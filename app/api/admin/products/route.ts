@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { catalogConfigSchema, productWriteSchema } from "@/lib/config-schemas";
 import { DEFAULT_CATALOG } from "@/lib/config-defaults";
-
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-function isMissingSubcategoryColumnError(message: string) {
-  const text = message.toLowerCase();
-  return text.includes("could not find the 'subcategory' column") || text.includes("column \"subcategory\" does not exist");
-}
 
 async function getCatalogIds() {
   const supabase = getAdminClient();
@@ -26,9 +14,7 @@ async function getCatalogIds() {
     .maybeSingle();
 
   const parsed = catalogConfigSchema.safeParse(data?.value ?? DEFAULT_CATALOG);
-  return parsed.success
-    ? parsed.data.categories
-    : DEFAULT_CATALOG.categories;
+  return parsed.success ? parsed.data.categories : DEFAULT_CATALOG.categories;
 }
 
 function validateProductCatalogRelationships(
@@ -36,19 +22,12 @@ function validateProductCatalogRelationships(
   categories: Awaited<ReturnType<typeof getCatalogIds>>
 ) {
   const category = categories.find((item) => item.id === product.category);
-  if (!category) {
-    return { success: false as const, message: "Unknown category selected" };
-  }
+  if (!category) return { success: false as const, message: "Unknown category selected" };
 
   if (product.subcategory) {
-    const subcategoryExists = category.subcategories.some(
-      (subcategory) => subcategory.id === product.subcategory
-    );
-    if (!subcategoryExists) {
-      return { success: false as const, message: "Unknown subcategory selected" };
-    }
+    const exists = category.subcategories.some((s) => s.id === product.subcategory);
+    if (!exists) return { success: false as const, message: "Unknown subcategory selected" };
   }
-
   return { success: true as const };
 }
 
@@ -63,7 +42,6 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = getAdminClient();
     let query = supabase.from("products").select("*");
-
     if (category && category !== "all") query = query.eq("category", category);
     if (featured === "true") query = query.eq("is_featured", true);
     if (search) query = query.ilike("name", `%${search}%`);
@@ -102,22 +80,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      if (isMissingSubcategoryColumnError(error.message)) {
-        const fallbackPayload = { ...parsed.data };
-        delete fallbackPayload.subcategory;
-        const retry = await supabase
-          .from("products")
-          .insert(fallbackPayload)
-          .select()
-          .single();
-
-        if (retry.error) {
-          return NextResponse.json({ error: retry.error.message }, { status: 500 });
-        }
-        revalidatePath("/shop");
-        revalidatePath("/");
-        return NextResponse.json({ product: retry.data }, { status: 201 });
-      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     revalidatePath("/shop");

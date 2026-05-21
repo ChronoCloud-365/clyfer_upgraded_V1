@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { getAdminClient } from "@/lib/supabase/admin";
 import { productWriteSchema } from "@/lib/config-schemas";
 import { DEFAULT_CATALOG } from "@/lib/config-defaults";
-
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-function isMissingSubcategoryColumnError(message: string) {
-  const text = message.toLowerCase();
-  return text.includes("could not find the 'subcategory' column") || text.includes("column \"subcategory\" does not exist");
-}
 
 async function getCatalogCategories() {
   const supabase = getAdminClient();
@@ -76,17 +64,14 @@ export async function PUT(
       return NextResponse.json({ error: "Category is required for update" }, { status: 400 });
     }
     const category = catalogCategories.find((item) => item.id === effectiveCategory);
-
     if (!category) {
       return NextResponse.json({ error: "Unknown category selected" }, { status: 400 });
     }
 
     const effectiveSubcategory = parsed.data.subcategory ?? null;
     if (effectiveSubcategory) {
-      const subcategoryExists = category.subcategories.some(
-        (subcategory) => subcategory.id === effectiveSubcategory
-      );
-      if (!subcategoryExists) {
+      const exists = category.subcategories.some((s) => s.id === effectiveSubcategory);
+      if (!exists) {
         return NextResponse.json({ error: "Unknown subcategory selected" }, { status: 400 });
       }
     }
@@ -99,24 +84,6 @@ export async function PUT(
       .single();
 
     if (error) {
-      if (isMissingSubcategoryColumnError(error.message)) {
-        const fallbackPayload = { ...parsed.data };
-        delete fallbackPayload.subcategory;
-        const retry = await supabase
-          .from("products")
-          .update(fallbackPayload)
-          .eq("id", id)
-          .select()
-          .single();
-
-        if (retry.error) {
-          return NextResponse.json({ error: retry.error.message }, { status: 500 });
-        }
-        revalidatePath("/shop");
-        revalidatePath(`/shop/${retry.data.slug}`);
-        revalidatePath("/");
-        return NextResponse.json({ product: retry.data });
-      }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     revalidatePath("/shop");
@@ -140,9 +107,7 @@ export async function DELETE(
   try {
     const supabase = getAdminClient();
     const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     revalidatePath("/shop");
     revalidatePath("/");
     return NextResponse.json({ ok: true });

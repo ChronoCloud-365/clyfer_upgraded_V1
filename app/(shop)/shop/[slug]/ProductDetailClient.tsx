@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
   Star,
@@ -36,7 +37,7 @@ export function ProductDetailClient({ product }: Props) {
     : null;
 
   function handleAddToCart() {
-    if (!selectedSize) return alert("Please select a size");
+    if (!selectedSize) { toast.error("Please select a size"); return; }
     // Call addItem qty times or just once + handle qty via store
     for (let i = 0; i < quantity; i++) {
       addItem(
@@ -50,7 +51,7 @@ export function ProductDetailClient({ product }: Props) {
   }
 
   function handleBuyNow() {
-    if (!selectedSize) return alert("Please select a size");
+    if (!selectedSize) { toast.error("Please select a size"); return; }
     addItem(
       product,
       selectedSize,

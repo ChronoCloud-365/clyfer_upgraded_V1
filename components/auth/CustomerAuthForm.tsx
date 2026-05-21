@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Mail, Lock, UserPlus } from "lucide-react";
+import { Loader2, Mail, Lock, UserPlus, Phone } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -25,6 +25,7 @@ export function CustomerAuthForm({ mode }: { mode: Mode }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState(registered ? "Your account is ready. Sign in below." : "");
@@ -68,7 +69,10 @@ export function CustomerAuthForm({ mode }: { mode: Mode }) {
       const { data, error: signUpError } = await client.auth.signUp({
         email,
         password,
-        options: redirectTo ? { emailRedirectTo: redirectTo } : undefined,
+        options: {
+          ...(redirectTo ? { emailRedirectTo: redirectTo } : {}),
+          data: phone.trim() ? { phone: phone.trim() } : undefined,
+        },
       });
 
       if (signUpError) throw signUpError;
@@ -121,21 +125,38 @@ export function CustomerAuthForm({ mode }: { mode: Mode }) {
       </div>
 
       {mode === "register" && (
-        <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Confirm Password</label>
-          <div className="relative">
-            <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repeat password"
-              className="w-full bg-muted/50 border border-border rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-brand transition-all"
-              required
-              minLength={6}
-            />
+        <>
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">Confirm Password</label>
+            <div className="relative">
+              <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repeat password"
+                className="w-full bg-muted/50 border border-border rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-brand transition-all"
+                required
+                minLength={6}
+              />
+            </div>
           </div>
-        </div>
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Phone Number <span className="text-xs opacity-60">(for order tracking)</span>
+            </label>
+            <div className="relative">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="01XXXXXXXXX"
+                className="w-full bg-muted/50 border border-border rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-brand transition-all"
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {message && (

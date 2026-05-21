@@ -1,25 +1,27 @@
 import type { Metadata } from "next";
-import { getHeroConfig, getFeaturedConfig, getCatalogConfig } from "@/lib/site-config-server";
+import { getHeroConfig, getFeaturedConfig, getCatalogConfig, getStoreLocatorConfig } from "@/lib/site-config-server";
 import { getAllProducts } from "@/lib/products";
 import { HeroSlider } from "@/components/home/HeroSection";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { AllProductsSection } from "@/components/home/AllProductsSection";
+import { StoreLocatorSection } from "@/components/home/StoreLocatorSection";
 import type { FeaturedSectionConfig, Product } from "@/types";
 
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Clyfer - Premium Footwear",
+  title: "Clyfar Fashion — Premium Footwear",
   description:
     "Discover premium footwear crafted for those who move forward. Shop running, casual, formal, and limited edition shoes.",
 };
 
 export default async function HomePage() {
-  const [heroConfig, featuredConfig, allProducts, catalog] = await Promise.all([
+  const [heroConfig, featuredConfig, allProducts, catalog, storeLocator] = await Promise.all([
     getHeroConfig(),
     getFeaturedConfig(),
     getAllProducts(),
     getCatalogConfig(),
+    getStoreLocatorConfig(),
   ]);
 
   return (
@@ -40,6 +42,8 @@ export default async function HomePage() {
       })}
 
       <AllProductsSection products={allProducts} categories={catalog.categories} />
+
+      <StoreLocatorSection config={storeLocator} />
     </main>
   );
 }

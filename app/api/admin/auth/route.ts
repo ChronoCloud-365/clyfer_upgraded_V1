@@ -4,7 +4,10 @@ const ADMIN_COOKIE = "clyfer_admin_session";
 
 export async function POST(request: NextRequest) {
   const { password } = await request.json();
-  const correct = process.env.ADMIN_PASSWORD ?? "clyfer_admin_2024";
+  const correct = process.env.ADMIN_PASSWORD;
+  if (!correct) {
+    return NextResponse.json({ error: "Server misconfigured: ADMIN_PASSWORD not set" }, { status: 500 });
+  }
 
   if (password !== correct) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });

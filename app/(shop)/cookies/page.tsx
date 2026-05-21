@@ -2,8 +2,8 @@ import { getCookiesConfig } from "@/lib/site-config-server";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy | Clyfer",
-  description: "Cookie policy for Clyfer website",
+  title: "Cookie Policy | Clyfar Fashion",
+  description: "Cookie policy for Clyfar Fashion website",
 };
 
 export default async function CookiesPage() {

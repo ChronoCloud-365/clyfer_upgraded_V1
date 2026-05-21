@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { CustomerAuthForm } from "@/components/auth/CustomerAuthForm";
 
 export const metadata: Metadata = {
-  title: "Sign Up | Clyfer",
-  description: "Create your Clyfer customer account.",
+  title: "Sign Up | Clyfar Fashion",
+  description: "Create your Clyfar Fashion customer account.",
 };
 
 export default function RegisterPage() {
@@ -13,7 +13,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md rounded-3xl border border-border bg-card/80 backdrop-blur-xl p-8 shadow-2xl">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-black tracking-tight text-foreground mb-2">Create Account</h1>
-          <p className="text-muted-foreground">Join Clyfer for faster checkout and order tracking</p>
+          <p className="text-muted-foreground">Join Clyfar Fashion for faster checkout and order tracking</p>
         </div>
 
         <Suspense fallback={null}>

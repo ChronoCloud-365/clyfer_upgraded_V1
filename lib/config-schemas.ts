@@ -143,6 +143,15 @@ export const productWriteSchema = z.object({
   review_count: z.number().int().nonnegative(),
 });
 
+export const storeLocatorConfigSchema = z.object({
+  enabled: z.boolean(),
+  name: z.string().trim(),
+  address: z.string().trim(),
+  mapUrl: z.string().trim(),
+  phone: z.string().trim().optional().default(""),
+  hours: z.string().trim().optional().default(""),
+});
+
 export const orderWriteSchema = z.object({
   customer_name: z.string().trim().min(1),
   phone: z.string().trim().min(1),

@@ -20,33 +20,33 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Clyfer - Premium Footwear",
-    template: "%s | Clyfer",
+    default: "Clyfar Fashion — Premium Footwear",
+    template: "%s | Clyfar Fashion",
   },
   description:
-    "Discover premium sneakers and footwear at Clyfer. Shop the latest drops, limited editions, and everyday classics. Free shipping over ৳ 5,000.",
-  keywords: ["shoes", "sneakers", "footwear", "clyfer", "premium shoes", "running shoes"],
-  authors: [{ name: "Clyfer" }],
-  creator: "Clyfer",
+    "Discover premium sneakers and footwear at Clyfar Fashion. Shop the latest drops, limited editions, and everyday classics. Free shipping over ৳ 5,000.",
+  keywords: ["shoes", "sneakers", "footwear", "clyfar", "premium shoes", "running shoes"],
+  authors: [{ name: "Clyfar Fashion" }],
+  creator: "Clyfar Fashion",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "https://clyfer.vercel.app",
-    siteName: "Clyfer",
-    title: "Clyfer - Premium Footwear",
+    siteName: "Clyfar Fashion",
+    title: "Clyfar Fashion — Premium Footwear",
     description: "Step into your era. Premium footwear crafted for those who move forward.",
     images: [
       {
         url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200",
         width: 1200,
         height: 630,
-        alt: "Clyfer Shoes",
+        alt: "Clyfar Fashion Shoes",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Clyfer - Premium Footwear",
+    title: "Clyfar Fashion — Premium Footwear",
     description: "Step into your era. Premium footwear for those who move forward.",
   },
   robots: {

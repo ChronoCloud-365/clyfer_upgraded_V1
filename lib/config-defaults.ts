@@ -10,6 +10,7 @@ import type {
   ShippingConfig,
   LegalConfig,
   CatalogConfig,
+  StoreLocatorConfig,
 } from "@/types";
 
 export const DEFAULT_NAVBAR: NavbarConfig = {
@@ -27,35 +28,35 @@ export const DEFAULT_CATALOG: CatalogConfig = {
     {
       id: "running",
       label: "Running",
-      href: "/shop/running",
+      href: "/shop?category=running",
       description: "Performance-driven running styles",
       subcategories: [],
     },
     {
       id: "casual",
       label: "Casual",
-      href: "/shop/casual",
+      href: "/shop?category=casual",
       description: "Everyday comfort and clean silhouettes",
       subcategories: [],
     },
     {
       id: "formal",
       label: "Formal",
-      href: "/shop/formal",
+      href: "/shop?category=formal",
       description: "Polished pairs for dressed-up looks",
       subcategories: [],
     },
     {
       id: "sports",
       label: "Sports",
-      href: "/shop/sports",
+      href: "/shop?category=sports",
       description: "Court-ready and training-focused shoes",
       subcategories: [],
     },
     {
       id: "limited",
       label: "Limited",
-      href: "/shop/limited",
+      href: "/shop?category=limited",
       description: "Special drops and exclusive releases",
       subcategories: [],
     },
@@ -83,4 +84,13 @@ export const DEFAULT_SHIPPING: ShippingConfig = {
 
 export const DEFAULT_LEGAL: LegalConfig = {
   content: "<h1>Content coming soon</h1><p>We are updating our policies.</p>",
+};
+
+export const DEFAULT_STORE_LOCATOR: StoreLocatorConfig = {
+  enabled: false,
+  name: "Clyfar Fashion",
+  address: "",
+  mapUrl: "https://maps.app.goo.gl/veuUzpmDRLGLLoVK8",
+  phone: "",
+  hours: "",
 };

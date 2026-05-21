@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import type { SiteConfigKey } from "@/types";
 import { requireAdminSession } from "@/lib/admin-auth";
+import { getAdminClient } from "@/lib/supabase/admin";
 import {
   DEFAULT_CATALOG,
   DEFAULT_FEATURED,
@@ -11,6 +11,7 @@ import {
   DEFAULT_LEGAL,
   DEFAULT_NAVBAR_SETTINGS,
   DEFAULT_SHIPPING,
+  DEFAULT_STORE_LOCATOR,
 } from "@/lib/config-defaults";
 import {
   catalogConfigSchema,
@@ -20,6 +21,7 @@ import {
   legalConfigSchema,
   navbarSettingsSchema,
   shippingConfigSchema,
+  storeLocatorConfigSchema,
 } from "@/lib/config-schemas";
 
 const DEFAULTS: Record<SiteConfigKey, unknown> = {
@@ -32,21 +34,15 @@ const DEFAULTS: Record<SiteConfigKey, unknown> = {
   terms: DEFAULT_LEGAL,
   privacy: DEFAULT_LEGAL,
   cookies: DEFAULT_LEGAL,
+  store_locator: DEFAULT_STORE_LOCATOR,
 };
 
 const VALID_KEYS: SiteConfigKey[] = [
-  "navbar",
-  "catalog",
-  "hero",
-  "featured",
-  "footer",
-  "shipping",
-  "terms",
-  "privacy",
-  "cookies",
+  "navbar", "catalog", "hero", "featured", "footer",
+  "shipping", "terms", "privacy", "cookies", "store_locator",
 ];
 
-const SCHEMAS: Partial<Record<SiteConfigKey, { safeParse: (value: unknown) => { success: boolean; error?: { message: string } } }>> = {
+const SCHEMAS: Partial<Record<SiteConfigKey, { safeParse: (v: unknown) => { success: boolean; error?: { message: string } } }>> = {
   navbar: navbarSettingsSchema,
   catalog: catalogConfigSchema,
   hero: heroConfigSchema,
@@ -56,63 +52,38 @@ const SCHEMAS: Partial<Record<SiteConfigKey, { safeParse: (value: unknown) => { 
   terms: legalConfigSchema,
   privacy: legalConfigSchema,
   cookies: legalConfigSchema,
+  store_locator: storeLocatorConfigSchema,
 };
-
-function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 function validateValue(key: SiteConfigKey, value: unknown) {
   const schema = SCHEMAS[key];
   if (!schema) return { success: true as const };
   const result = schema.safeParse(value);
   if (!result.success) {
-    return {
-      success: false as const,
-      message: result.error?.message ?? "Invalid config payload",
-    };
+    return { success: false as const, message: result.error?.message ?? "Invalid config payload" };
   }
   return { success: true as const };
 }
 
 function validateCatalogConsistency(value: unknown) {
   const parsed = catalogConfigSchema.safeParse(value);
-  if (!parsed.success) {
-    return { success: false as const, message: parsed.error.message };
-  }
+  if (!parsed.success) return { success: false as const, message: parsed.error.message };
 
   const categoryIds = new Set<string>();
   const subcategoryIds = new Set<string>();
-
   for (const category of parsed.data.categories) {
     if (categoryIds.has(category.id)) {
-      return {
-        success: false as const,
-        message: `Duplicate category id found: ${category.id}`,
-      };
+      return { success: false as const, message: `Duplicate category id: ${category.id}` };
     }
     categoryIds.add(category.id);
-
-    for (const subcategory of category.subcategories) {
-      if (subcategoryIds.has(subcategory.id)) {
-        return {
-          success: false as const,
-          message: `Duplicate subcategory id found: ${subcategory.id}`,
-        };
+    for (const sub of category.subcategories) {
+      if (subcategoryIds.has(sub.id)) {
+        return { success: false as const, message: `Duplicate subcategory id: ${sub.id}` };
       }
-      subcategoryIds.add(subcategory.id);
+      subcategoryIds.add(sub.id);
     }
   }
-
   return { success: true as const };
-}
-
-async function getStoredConfig<T>(supabase: ReturnType<typeof getAdminClient>, key: SiteConfigKey) {
-  const { data } = await supabase.from("site_config").select("value").eq("key", key).maybeSingle();
-  return data?.value as T | undefined;
 }
 
 export async function POST(request: NextRequest) {
@@ -143,29 +114,24 @@ export async function POST(request: NextRequest) {
     }
 
     if (key === "navbar") {
-      const catalogValue =
-        (await getStoredConfig<unknown>(supabase, "catalog")) ?? DEFAULT_CATALOG;
+      const { data: catalogData } = await supabase.from("site_config").select("value").eq("key", "catalog").maybeSingle();
+      const catalogValue = catalogData?.value ?? DEFAULT_CATALOG;
       const catalogValidation = validateCatalogConsistency(catalogValue);
       const navbarValidation = navbarSettingsSchema.safeParse(value);
 
       if (!catalogValidation.success) {
         return NextResponse.json({ error: catalogValidation.message }, { status: 400 });
       }
-
       if (!navbarValidation.success) {
         return NextResponse.json({ error: navbarValidation.error.message }, { status: 400 });
       }
 
       const catalogIds = new Set(
-        catalogConfigSchema.parse(catalogValue).categories.map((category) => category.id)
+        catalogConfigSchema.parse(catalogValue).categories.map((c) => c.id)
       );
-      const invalidCategoryId = navbarValidation.data.categoryIds.find((categoryId) => !catalogIds.has(categoryId));
-
-      if (invalidCategoryId) {
-        return NextResponse.json(
-          { error: `Unknown category selected: ${invalidCategoryId}` },
-          { status: 400 }
-        );
+      const invalid = navbarValidation.data.categoryIds.find((id) => !catalogIds.has(id));
+      if (invalid) {
+        return NextResponse.json({ error: `Unknown category: ${invalid}` }, { status: 400 });
       }
     }
 
@@ -173,9 +139,7 @@ export async function POST(request: NextRequest) {
       .from("site_config")
       .upsert({ key, value }, { onConflict: "key" });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     revalidatePath("/");
     revalidatePath("/shop", "layout");
@@ -207,10 +171,7 @@ export async function GET(request: NextRequest) {
       .eq("key", key)
       .single();
 
-    if (error || !data) {
-      return NextResponse.json({ value: DEFAULTS[key] });
-    }
-
+    if (error || !data) return NextResponse.json({ value: DEFAULTS[key] });
     return NextResponse.json({ value: data.value });
   } catch {
     return NextResponse.json({ value: DEFAULTS[key] });

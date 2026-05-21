@@ -78,8 +78,8 @@ function FooterPreview({ config }: { config: UiFooterConfig }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-3">
-                <Image src="/logo.jpeg" alt="Clyfer logo" width={42} height={42} className="rounded-xl object-cover" />
-                <span className="text-2xl font-bold tracking-normal text-foreground">CLY<span className="text-brand">FER</span></span>
+                <Image src="/logo.jpeg" alt="Clyfar Fashion logo" width={42} height={42} className="rounded-xl object-cover" />
+                <span className="text-2xl font-bold tracking-normal text-foreground">CLY<span className="text-brand">FAR</span></span>
               </div>
               <p className="text-sm leading-relaxed max-w-sm">{config.tagline || "Footer tagline preview"}</p>
             </div>

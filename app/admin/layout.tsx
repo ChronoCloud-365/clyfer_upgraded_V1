@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 export const metadata: Metadata = {
-  title: "Clyfer Admin",
-  description: "Clyfer e-commerce admin panel",
+  title: "Clyfar Fashion Admin",
+  description: "Clyfar Fashion e-commerce admin panel",
   robots: "noindex,nofollow",
 };
 

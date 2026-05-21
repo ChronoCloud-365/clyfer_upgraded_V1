@@ -16,7 +16,7 @@ const SORT_OPTIONS = [
 
 interface Props {
   initialProducts: Product[];
-  params: { category?: string; search?: string; filter?: string };
+  params: { category?: string; subcategory?: string; search?: string; filter?: string };
   categories: CatalogCategory[];
 }
 
@@ -26,6 +26,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(params.search ?? "");
   const [activeCategory, setActiveCategory] = useState(params.category ?? "all");
+  const [activeSubcategory, setActiveSubcategory] = useState(params.subcategory ?? "");
   const [sort, setSort] = useState<"newest" | "price_asc" | "price_desc" | "rating">("newest");
 
   const visibleCategories = useMemo(
@@ -40,6 +41,11 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
     [categories]
   );
 
+  const activeSubcategories = useMemo(() => {
+    if (activeCategory === "all") return [];
+    return categories.find((c) => c.id === activeCategory)?.subcategories ?? [];
+  }, [categories, activeCategory]);
+
   const filtered = useMemo(() => {
     let list = [...initialProducts];
 
@@ -53,8 +59,8 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
       );
     }
 
-    if (activeCategory !== "all") {
-      list = list.filter((product) => product.category === activeCategory);
+    if (activeSubcategory) {
+      list = list.filter((product) => product.subcategory === activeSubcategory);
     }
 
     switch (sort) {
@@ -72,9 +78,9 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
     }
 
     return list;
-  }, [initialProducts, search, activeCategory, sort]);
+  }, [initialProducts, search, activeSubcategory, sort]);
 
-  function updateUrl(next: { search?: string; category?: string }) {
+  function updateUrl(next: { search?: string; category?: string; subcategory?: string }) {
     const query = new URLSearchParams(searchParams.toString());
 
     if (next.search !== undefined) {
@@ -85,6 +91,12 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
     if (next.category !== undefined) {
       if (next.category && next.category !== "all") query.set("category", next.category);
       else query.delete("category");
+      query.delete("subcategory");
+    }
+
+    if (next.subcategory !== undefined) {
+      if (next.subcategory) query.set("subcategory", next.subcategory);
+      else query.delete("subcategory");
     }
 
     const qs = query.toString();
@@ -98,7 +110,14 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
 
   function handleCategoryClick(category: string) {
     setActiveCategory(category);
+    setActiveSubcategory("");
     updateUrl({ category });
+  }
+
+  function handleSubcategoryClick(subcategory: string) {
+    const next = activeSubcategory === subcategory ? "" : subcategory;
+    setActiveSubcategory(next);
+    updateUrl({ subcategory: next });
   }
 
   return (
@@ -133,7 +152,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
           </select>
         </div>
 
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-2 scrollbar-none">
           {visibleCategories.map((category) => (
             <button
               key={category.value}
@@ -153,6 +172,25 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
             </button>
           ))}
         </div>
+
+        {activeSubcategories.length > 0 && (
+          <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
+            {activeSubcategories.map((sub) => (
+              <button
+                key={sub.id}
+                onClick={() => handleSubcategoryClick(sub.id)}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                  activeSubcategory === sub.id
+                    ? "border-foreground text-foreground bg-accent"
+                    : "border-border text-muted-foreground hover:text-foreground hover:border-zinc-400"
+                }`}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {activeSubcategories.length === 0 && <div className="mb-8" />}
 
         {filtered.length === 0 ? (
           <div className="text-center py-20">

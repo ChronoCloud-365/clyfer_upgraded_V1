@@ -1,24 +1,26 @@
 import { createClient } from "./supabase/server";
-import { 
-  DEFAULT_NAVBAR, 
+import {
+  DEFAULT_NAVBAR,
   DEFAULT_NAVBAR_SETTINGS,
-  DEFAULT_HERO, 
-  DEFAULT_FOOTER, 
+  DEFAULT_HERO,
+  DEFAULT_FOOTER,
   DEFAULT_SHIPPING,
   DEFAULT_FEATURED,
   DEFAULT_LEGAL,
-  DEFAULT_CATALOG
+  DEFAULT_CATALOG,
+  DEFAULT_STORE_LOCATOR,
 } from "./config-defaults";
-import type { 
-  NavbarConfig, 
+import type {
+  NavbarConfig,
   NavbarSettings,
-  HeroConfig, 
-  FooterConfig, 
-  ShippingConfig, 
+  HeroConfig,
+  FooterConfig,
+  ShippingConfig,
   FeaturedConfig,
   LegalConfig,
   SiteConfigKey,
-  CatalogConfig
+  CatalogConfig,
+  StoreLocatorConfig,
 } from "@/types";
 
 /**
@@ -128,6 +130,10 @@ export async function getPrivacyConfig(): Promise<LegalConfig> {
 
 export async function getCookiesConfig(): Promise<LegalConfig> {
   return getSiteConfig<LegalConfig>("cookies", DEFAULT_LEGAL);
+}
+
+export async function getStoreLocatorConfig(): Promise<StoreLocatorConfig> {
+  return getSiteConfig<StoreLocatorConfig>("store_locator", DEFAULT_STORE_LOCATOR);
 }
 
 export async function getCatalogConfig(): Promise<CatalogConfig> {

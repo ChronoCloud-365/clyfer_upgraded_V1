@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Truck,
   FileText,
+  MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { label: "Products", href: "/admin/products", icon: Package },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Shipping", href: "/admin/shipping", icon: Truck },
+  { label: "Store Locator", href: "/admin/store-locator", icon: MapPin },
   { label: "Legal Pages", href: "/admin/legal", icon: FileText },
 ];
 
@@ -58,7 +60,7 @@ export function AdminSidebar() {
         </div>
         {!collapsed && (
           <span className="text-lg font-black tracking-tight text-foreground">
-            CLY<span className="text-brand">FER</span>
+            CLY<span className="text-brand">FAR</span>
             <span className="text-muted-foreground text-xs font-normal ml-1">Admin</span>
           </span>
         )}
@@ -135,7 +137,7 @@ export function AdminSidebar() {
 
       {/* Mobile top bar + drawer */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-50 flex items-center justify-between px-4 py-3 bg-background border-b border-border">
-        <span className="text-base font-black text-foreground">CLY<span className="text-brand">FER</span> <span className="text-muted-foreground text-xs font-normal">Admin</span></span>
+        <span className="text-base font-black text-foreground">CLY<span className="text-brand">FAR</span> <span className="text-muted-foreground text-xs font-normal">Admin</span></span>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="size-8 flex items-center justify-center text-muted-foreground">
           {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>

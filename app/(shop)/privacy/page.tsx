@@ -2,8 +2,8 @@ import { getPrivacyConfig } from "@/lib/site-config-server";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Clyfer",
-  description: "Privacy policy for Clyfer customers",
+  title: "Privacy Policy | Clyfar Fashion",
+  description: "Privacy policy for Clyfar Fashion customers",
 };
 
 export default async function PrivacyPage() {

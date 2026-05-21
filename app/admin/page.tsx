@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
 import {
   Package,
@@ -9,11 +9,12 @@ import {
   Navigation,
   Image,
   AlignLeft,
+  MapPin,
 } from "lucide-react";
 
 async function getStats() {
   try {
-    const supabase = await createClient();
+    const supabase = getAdminClient();
     const [productsRes, ordersRes] = await Promise.all([
       supabase.from("products").select("id, in_stock", { count: "exact" }),
       supabase.from("orders").select("id, status, total_price", { count: "exact" }),
@@ -82,19 +83,16 @@ export default async function AdminDashboard() {
     { label: "Edit Hero", desc: "Slider images & text", href: "/admin/hero", icon: Image },
     { label: "Edit Footer", desc: "Links, social & tagline", href: "/admin/footer", icon: AlignLeft },
     { label: "Add Product", desc: "New product listing", href: "/admin/products/new", icon: Package },
+    { label: "Store Locator", desc: "Map URL & address", href: "/admin/store-locator", icon: MapPin },
   ];
 
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-zinc-400 text-sm mt-1">
-          Welcome back to Clyfer Admin
-        </p>
+        <p className="text-zinc-400 text-sm mt-1">Welcome back to Clyfar Admin</p>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((card) => (
           <Link
@@ -111,7 +109,6 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Quick links */}
       <div>
         <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-4">
           Quick Actions

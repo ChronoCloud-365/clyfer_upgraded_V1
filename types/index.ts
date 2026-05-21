@@ -193,6 +193,15 @@ export interface ShippingConfig {
   outsideDhaka: number;
 }
 
+export interface StoreLocatorConfig {
+  enabled: boolean;
+  name: string;
+  address: string;
+  mapUrl: string;
+  phone?: string;
+  hours?: string;
+}
+
 export type SiteConfigKey =
   | "navbar"
   | "catalog"
@@ -202,4 +211,5 @@ export type SiteConfigKey =
   | "shipping"
   | "terms"
   | "privacy"
-  | "cookies";
+  | "cookies"
+  | "store_locator";
