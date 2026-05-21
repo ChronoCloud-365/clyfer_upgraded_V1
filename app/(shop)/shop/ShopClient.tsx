@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Star, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import type { Product, CatalogCategory } from "@/types";
 
 const SORT_OPTIONS = [
@@ -229,12 +229,6 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
                       <h3 className="font-semibold text-sm text-foreground group-hover:text-brand transition-colors mt-0.5 truncate">
                         {product.name}
                       </h3>
-                      <div className="flex items-center gap-1 mt-1">
-                        <Star className="size-3 fill-amber-400 text-amber-400" />
-                        <span className="text-xs text-muted-foreground">
-                          {product.rating} ({product.review_count})
-                        </span>
-                      </div>
                       <div className="flex items-baseline gap-2 mt-1">
                         <span className="font-bold text-foreground">৳{product.price.toLocaleString()}</span>
                         {product.original_price && (

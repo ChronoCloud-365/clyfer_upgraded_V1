@@ -75,20 +75,20 @@ export async function getNavbarConfig(): Promise<NavbarConfig> {
           .map((category) => ({
             id: category!.id,
             label: category!.label,
-            href: category!.href,
+            href: `/shop?category=${category!.id}`,
             subcategories: category!.subcategories.map((sub) => ({
               label: sub.label,
-              href: sub.href,
+              href: `/shop?category=${category!.id}&subcategory=${sub.id}`,
               desc: sub.desc,
             })),
           }))
       : catalog.categories.map((category) => ({
           id: category.id,
           label: category.label,
-          href: category.href,
+          href: `/shop?category=${category.id}`,
           subcategories: category.subcategories.map((sub) => ({
             label: sub.label,
-            href: sub.href,
+            href: `/shop?category=${category.id}&subcategory=${sub.id}`,
             desc: sub.desc,
           })),
         }));

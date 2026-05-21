@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Star, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart";
 import type { Product } from "@/types";
@@ -100,12 +100,6 @@ export function ProductCard({ product, index }: ProductCardProps) {
              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold opacity-60">
               {product.brand}
             </p>
-            <div className="flex items-center gap-1">
-              <Star className="size-2.5 fill-amber-400 text-amber-400" />
-              <span className="text-[10px] text-muted-foreground font-bold">
-                {product.rating}
-              </span>
-            </div>
           </div>
 
           <h3 className="text-base font-bold text-foreground group-hover:text-brand transition-colors leading-tight truncate">

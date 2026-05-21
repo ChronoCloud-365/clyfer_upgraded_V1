@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
-  Star,
   ShoppingCart,
   CreditCard,
   Check,
@@ -116,24 +115,6 @@ export function ProductDetailClient({ product }: Props) {
               <h1 className="text-3xl font-bold tracking-normal text-foreground">
                 {product.name}
               </h1>
-              {/* Rating */}
-              <div className="flex items-center gap-2 mt-2">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`size-4 ${
-                        i < Math.round(product.rating)
-                          ? "fill-amber-400 text-amber-400"
-                          : "text-zinc-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {product.rating} · {product.review_count} reviews
-                </span>
-              </div>
             </div>
 
             {/* Price */}
