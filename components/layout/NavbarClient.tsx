@@ -73,10 +73,6 @@ export function NavbarClient({ config }: Props) {
     return `/shop?category=${catId}`;
   }
 
-  function getSubcategoryHref(catId: string, subId: string) {
-    return `/shop?category=${catId}&subcategory=${subId}`;
-  }
-
   function submitSearch() {
     const term = searchTerm.trim();
     const target = term ? `/shop?search=${encodeURIComponent(term)}` : "/shop";
@@ -217,7 +213,7 @@ export function NavbarClient({ config }: Props) {
                           {cat.subcategories.map((sub) => (
                             <li key={sub.href}>
                               <NavigationMenuLink
-                                href={getSubcategoryHref(cat.id, sub.id ?? sub.label)}
+                                href={sub.href}
                                 className="block select-none rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                               >
                                 <div className="text-sm font-medium leading-none mb-1">
@@ -377,7 +373,7 @@ export function NavbarClient({ config }: Props) {
                               {cat.subcategories.map((sub) => (
                                 <Link
                                   key={sub.label}
-                                  href={getSubcategoryHref(cat.id, sub.id ?? sub.label)}
+                                  href={sub.href}
                                   onClick={() => setMobileOpen(false)}
                                   className="flex items-center px-4 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                                 >
