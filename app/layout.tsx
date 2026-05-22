@@ -32,18 +32,10 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://clyfer.vercel.app",
+    url: "https://clyfarfashion.com",
     siteName: "Clyfar Fashion",
     title: "Clyfar Fashion — Premium Footwear",
     description: "Step into your era. Premium footwear crafted for those who move forward.",
-    images: [
-      {
-        url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200",
-        width: 1200,
-        height: 630,
-        alt: "Clyfar Fashion Shoes",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
