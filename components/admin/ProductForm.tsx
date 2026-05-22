@@ -148,39 +148,57 @@ export function ProductForm({ initial = {}, productId }: Props) {
             />
             <p className="text-[10px] text-muted-foreground mt-1">Auto-generated from name if left empty.</p>
           </div>
-          <div>
+          <div className="col-span-2 space-y-3">
             <label className="admin-label">Category *</label>
-            <select
-              value={category}
-              onChange={(e) => {
-                const next = e.target.value;
-                setCategory(next);
-                setSubcategory("");
-              }}
-              className="admin-input capitalize"
-            >
+            <div className="flex flex-wrap gap-2">
               {categories.map((item) => (
-                <option key={item.id} value={item.id}>
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => { setCategory(item.id as ProductCategory); setSubcategory(""); }}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
+                    category === item.id
+                      ? "border-brand bg-brand/15 text-brand"
+                      : "border-border bg-muted/30 text-muted-foreground hover:border-border/80 hover:text-foreground"
+                  }`}
+                >
                   {item.label}
-                </option>
+                </button>
               ))}
-            </select>
-          </div>
-          <div>
-            <label className="admin-label">Subcategory</label>
-            <select
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              className="admin-input capitalize"
-              disabled={subcategoryOptions.length === 0}
-            >
-              <option value="">No subcategory</option>
-              {subcategoryOptions.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            </div>
+
+            {subcategoryOptions.length > 0 && (
+              <div className="space-y-2 pl-1">
+                <label className="admin-label">Subcategory</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSubcategory("")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                      subcategory === ""
+                        ? "border-brand/50 bg-brand/10 text-brand"
+                        : "border-border bg-muted/20 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    All
+                  </button>
+                  {subcategoryOptions.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSubcategory(item.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        subcategory === item.id
+                          ? "border-brand/50 bg-brand/10 text-brand"
+                          : "border-border bg-muted/20 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-6 pt-5">
             <label className="flex items-center gap-2 cursor-pointer">
