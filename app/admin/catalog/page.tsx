@@ -1,146 +1,188 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Trash2, Save, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import type { CatalogConfig, CatalogCategory, CatalogSubcategory } from "@/types";
 import { DEFAULT_CATALOG } from "@/lib/config-defaults";
-import { LinkPicker } from "@/components/admin/LinkPicker";
 
-function makeId() {
+function slugify(text: string) {
+  return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function makeUiKey() {
   return crypto.randomUUID();
 }
 
-type UiCatalogSubcategory = CatalogSubcategory & { uiKey: string };
-type UiCatalogCategory = Omit<CatalogCategory, "subcategories"> & {
-  uiKey: string;
-  subcategories: UiCatalogSubcategory[];
-};
-type UiCatalogConfig = { categories: UiCatalogCategory[] };
+type UiSub = CatalogSubcategory & { uiKey: string };
+type UiCat = Omit<CatalogCategory, "subcategories"> & { uiKey: string; subcategories: UiSub[] };
+type UiConfig = { categories: UiCat[] };
 
-function withUiKeys(config: CatalogConfig): UiCatalogConfig {
+function withUiKeys(config: CatalogConfig): UiConfig {
   return {
-    categories: (config.categories ?? []).map((category) => ({
-      ...category,
-      uiKey: makeId(),
-      subcategories: (category.subcategories ?? []).map((subcategory) => ({
-        ...subcategory,
-        uiKey: makeId(),
+    categories: (config.categories ?? []).map((cat) => ({
+      ...cat,
+      uiKey: makeUiKey(),
+      subcategories: (cat.subcategories ?? []).map((sub) => ({ ...sub, uiKey: makeUiKey() })),
+    })),
+  };
+}
+
+function stripUiKeys(config: UiConfig): CatalogConfig {
+  return {
+    categories: config.categories.map(({ uiKey: _u, subcategories, ...cat }) => ({
+      ...cat,
+      href: `/shop?category=${cat.id}`,
+      subcategories: subcategories.map(({ uiKey: _su, ...sub }) => ({
+        ...sub,
+        href: `/shop?category=${cat.id}&subcategory=${sub.id}`,
       })),
     })),
   };
 }
 
-function stripUiKeys(config: UiCatalogConfig): CatalogConfig {
-  return {
-    categories: config.categories.map(({ uiKey: _uiKey, subcategories, ...category }) => ({
-      ...category,
-      subcategories: subcategories.map(({ uiKey: _subUiKey, ...subcategory }) => subcategory),
-    })),
-  };
-}
-
 export default function AdminCatalogPage() {
-  const [config, setConfig] = useState<UiCatalogConfig>(withUiKeys(DEFAULT_CATALOG));
+  const [config, setConfig] = useState<UiConfig>(withUiKeys(DEFAULT_CATALOG));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  // Track which IDs were manually edited (don't auto-overwrite those)
+  const manualIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/admin/site-config?key=catalog")
       .then((r) => r.json())
-      .then((d) => setConfig(withUiKeys(d.value ?? DEFAULT_CATALOG)))
+      .then((d) => {
+        const loaded = withUiKeys(d.value ?? DEFAULT_CATALOG);
+        // All loaded categories have real IDs — mark them as manual so we don't overwrite
+        loaded.categories.forEach((c) => {
+          manualIds.current.add(c.uiKey);
+          c.subcategories.forEach((s) => manualIds.current.add(s.uiKey));
+        });
+        setConfig(loaded);
+      })
       .finally(() => setLoading(false));
   }, []);
 
+  function toggleCollapse(uiKey: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(uiKey)) next.delete(uiKey);
+      else next.add(uiKey);
+      return next;
+    });
+  }
+
   function addCategory() {
-    setConfig((current) => ({
-      ...current,
+    const uiKey = makeUiKey();
+    setConfig((prev) => ({
+      ...prev,
       categories: [
-        ...current.categories,
-        {
-          uiKey: makeId(),
-          id: makeId(),
-          label: "New Category",
-          href: "/shop",
-          description: "",
-          subcategories: [],
-        },
+        ...prev.categories,
+        { uiKey, id: "", label: "", href: "/shop", description: "", subcategories: [] },
       ],
     }));
   }
 
-  function updateCategory(id: string, field: keyof CatalogCategory, value: string) {
-    setConfig((current) => ({
-      ...current,
-      categories: current.categories.map((category) =>
-        category.id === id ? { ...category, [field]: value } : category
-      ),
+  function updateCatLabel(uiKey: string, label: string) {
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) => {
+        if (c.uiKey !== uiKey) return c;
+        const next = { ...c, label };
+        if (!manualIds.current.has(uiKey)) next.id = slugify(label);
+        return next;
+      }),
     }));
   }
 
-  function removeCategory(id: string) {
-    setConfig((current) => ({
-      ...current,
-      categories: current.categories.filter((category) => category.id !== id),
+  function updateCatId(uiKey: string, id: string) {
+    manualIds.current.add(uiKey);
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) => (c.uiKey === uiKey ? { ...c, id } : c)),
     }));
   }
 
-  function addSubcategory(categoryId: string) {
-    setConfig((current) => ({
-      ...current,
-      categories: current.categories.map((category) =>
-        category.id === categoryId
-          ? {
-              ...category,
+  function updateCatDesc(uiKey: string, description: string) {
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) => (c.uiKey === uiKey ? { ...c, description } : c)),
+    }));
+  }
+
+  function removeCategory(uiKey: string) {
+    setConfig((prev) => ({ ...prev, categories: prev.categories.filter((c) => c.uiKey !== uiKey) }));
+  }
+
+  function addSubcategory(catUiKey: string) {
+    const subUiKey = makeUiKey();
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) =>
+        c.uiKey !== catUiKey
+          ? c
+          : {
+              ...c,
               subcategories: [
-                ...category.subcategories,
-                {
-                  uiKey: makeId(),
-                  id: makeId(),
-                  label: "New Subcategory",
-                  href: "/shop",
-                  desc: "",
-                },
+                ...c.subcategories,
+                { uiKey: subUiKey, id: "", label: "", href: "/shop", desc: "" },
               ],
             }
-          : category
       ),
     }));
   }
 
-  function updateSubcategory(
-    categoryId: string,
-    subcategoryId: string,
-    field: keyof CatalogSubcategory,
-    value: string
-  ) {
-    setConfig((current) => ({
-      ...current,
-      categories: current.categories.map((category) =>
-        category.id !== categoryId
-          ? category
+  function updateSubLabel(catUiKey: string, subUiKey: string, label: string) {
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) =>
+        c.uiKey !== catUiKey
+          ? c
           : {
-              ...category,
-              subcategories: category.subcategories.map((subcategory) =>
-                subcategory.id === subcategoryId
-                  ? { ...subcategory, [field]: value }
-                  : subcategory
-              ),
+              ...c,
+              subcategories: c.subcategories.map((s) => {
+                if (s.uiKey !== subUiKey) return s;
+                const next = { ...s, label };
+                if (!manualIds.current.has(subUiKey)) next.id = slugify(label);
+                return next;
+              }),
             }
       ),
     }));
   }
 
-  function removeSubcategory(categoryId: string, subcategoryId: string) {
-    setConfig((current) => ({
-      ...current,
-      categories: current.categories.map((category) =>
-        category.id !== categoryId
-          ? category
-          : {
-              ...category,
-              subcategories: category.subcategories.filter((subcategory) => subcategory.id !== subcategoryId),
-            }
+  function updateSubId(catUiKey: string, subUiKey: string, id: string) {
+    manualIds.current.add(subUiKey);
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) =>
+        c.uiKey !== catUiKey
+          ? c
+          : { ...c, subcategories: c.subcategories.map((s) => (s.uiKey === subUiKey ? { ...s, id } : s)) }
+      ),
+    }));
+  }
+
+  function updateSubDesc(catUiKey: string, subUiKey: string, desc: string) {
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) =>
+        c.uiKey !== catUiKey
+          ? c
+          : { ...c, subcategories: c.subcategories.map((s) => (s.uiKey === subUiKey ? { ...s, desc } : s)) }
+      ),
+    }));
+  }
+
+  function removeSubcategory(catUiKey: string, subUiKey: string) {
+    setConfig((prev) => ({
+      ...prev,
+      categories: prev.categories.map((c) =>
+        c.uiKey !== catUiKey
+          ? c
+          : { ...c, subcategories: c.subcategories.filter((s) => s.uiKey !== subUiKey) }
       ),
     }));
   }
@@ -169,12 +211,12 @@ export default function AdminCatalogPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Catalog Manager</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Create categories and subcategories here first. Navbar and products read from this source.
+            Categories and subcategories — URLs are auto-generated from IDs.
           </p>
         </div>
         <button
@@ -188,137 +230,186 @@ export default function AdminCatalogPage() {
         </button>
       </div>
 
-      <section className="flex items-center justify-between rounded-3xl border border-border bg-card p-5 shadow-sm">
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-            Categories
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Every product category should be created here before it can be selected in the navbar.
-          </p>
-        </div>
+      {/* How it works note */}
+      <div className="rounded-2xl bg-brand/5 border border-brand/15 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
+        <span className="font-semibold text-foreground">How it works:</span> Type a category label — the ID auto-fills as a slug.
+        URLs are auto-generated: <code className="bg-muted px-1 py-0.5 rounded text-[11px]">/shop?category=ID</code> and{" "}
+        <code className="bg-muted px-1 py-0.5 rounded text-[11px]">/shop?category=CAT&subcategory=SUB</code>. No manual URL selection needed.
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+          Categories ({config.categories.length})
+        </h2>
         <button
           onClick={addCategory}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
         >
           <Plus className="size-4" /> Add Category
         </button>
-      </section>
+      </div>
 
-      <div className="space-y-6">
-        {config.categories.map((category) => (
-          <div key={category.uiKey} className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-            <div className="grid lg:grid-cols-[1.2fr_1fr_1fr_auto] gap-3 items-center">
-              <input
-                value={category.label}
-                onChange={(e) => updateCategory(category.id, "label", e.target.value)}
-                className="admin-input"
-                placeholder="Category label"
-              />
-              <input
-                value={category.id}
-                onChange={(e) => updateCategory(category.id, "id", e.target.value)}
-                className="admin-input font-mono text-xs"
-                placeholder="category-id"
-              />
-              <LinkPicker
-                value={category.href}
-                onChange={(value) => updateCategory(category.id, "href", value)}
-              />
-              <button
-                onClick={() => removeCategory(category.id)}
-                type="button"
-                className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors"
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </div>
+      <div className="space-y-4">
+        {config.categories.map((cat) => {
+          const isCollapsed = collapsed.has(cat.uiKey);
+          const catUrl = cat.id ? `/shop?category=${cat.id}` : null;
 
-            <div className="mt-3">
-              <textarea
-                value={category.description ?? ""}
-                onChange={(e) => updateCategory(category.id, "description", e.target.value)}
-                className="admin-input resize-none"
-                rows={2}
-                placeholder="Category description"
-              />
-            </div>
-
-            <div className="mt-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                  Subcategories
-                </h3>
+          return (
+            <div key={cat.uiKey} className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+              {/* Category header row */}
+              <div className="flex items-center gap-3 p-4">
                 <button
-                  onClick={() => addSubcategory(category.id)}
                   type="button"
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                  onClick={() => toggleCollapse(cat.uiKey)}
+                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors shrink-0"
                 >
-                  <Plus className="size-3" /> Add Subcategory
+                  {isCollapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+                </button>
+
+                <div className="flex-1 grid sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Label</label>
+                    <input
+                      value={cat.label}
+                      onChange={(e) => updateCatLabel(cat.uiKey, e.target.value)}
+                      className="admin-input"
+                      placeholder="e.g. Running"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                      ID (slug) {!manualIds.current.has(cat.uiKey) && cat.label && <span className="text-brand normal-case font-normal">· auto</span>}
+                    </label>
+                    <div className="relative">
+                      <input
+                        value={cat.id}
+                        onChange={(e) => updateCatId(cat.uiKey, e.target.value)}
+                        className="admin-input font-mono text-xs"
+                        placeholder="e.g. running"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => removeCategory(cat.uiKey)}
+                  type="button"
+                  className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                >
+                  <Trash2 className="size-4" />
                 </button>
               </div>
 
-              {category.subcategories.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-                  No subcategories yet.
+              {/* Auto-generated URL badge */}
+              {catUrl && (
+                <div className="px-4 pb-2 -mt-1">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-brand bg-brand/8 border border-brand/15 px-2.5 py-1 rounded-lg">
+                    🔗 {catUrl}
+                  </span>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {category.subcategories.map((subcategory) => (
-                    <div key={subcategory.uiKey} className="rounded-2xl border border-border bg-background p-4">
-                      <div className="grid lg:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-center">
-                        <input
-                          value={subcategory.label}
-                          onChange={(e) =>
-                            updateSubcategory(category.id, subcategory.id, "label", e.target.value)
-                          }
-                          className="admin-input"
-                          placeholder="Subcategory label"
-                        />
-                        <input
-                          value={subcategory.id}
-                          onChange={(e) =>
-                            updateSubcategory(category.id, subcategory.id, "id", e.target.value)
-                          }
-                          className="admin-input font-mono text-xs"
-                          placeholder="subcategory-id"
-                        />
-                        <LinkPicker
-                          value={subcategory.href}
-                          onChange={(value) =>
-                            updateSubcategory(category.id, subcategory.id, "href", value)
-                          }
-                        />
-                        <button
-                          onClick={() => removeSubcategory(category.id, subcategory.id)}
-                          type="button"
-                          className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                      <div className="mt-3">
-                        <textarea
-                          value={subcategory.desc}
-                          onChange={(e) =>
-                            updateSubcategory(category.id, subcategory.id, "desc", e.target.value)
-                          }
-                          className="admin-input resize-none"
-                          rows={2}
-                          placeholder="Subcategory description"
-                        />
-                      </div>
+              )}
+
+              {!isCollapsed && (
+                <div className="px-4 pb-4 space-y-4 border-t border-border mt-2 pt-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Description</label>
+                    <textarea
+                      value={cat.description ?? ""}
+                      onChange={(e) => updateCatDesc(cat.uiKey, e.target.value)}
+                      className="admin-input resize-none"
+                      rows={2}
+                      placeholder="Short description shown in navbar dropdown"
+                    />
+                  </div>
+
+                  {/* Subcategories */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                        Subcategories ({cat.subcategories.length})
+                      </h3>
+                      <button
+                        onClick={() => addSubcategory(cat.uiKey)}
+                        type="button"
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                      >
+                        <Plus className="size-3" /> Add Subcategory
+                      </button>
                     </div>
-                  ))}
+
+                    {cat.subcategories.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
+                        No subcategories yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {cat.subcategories.map((sub) => {
+                          const subUrl = cat.id && sub.id
+                            ? `/shop?category=${cat.id}&subcategory=${sub.id}`
+                            : null;
+
+                          return (
+                            <div key={sub.uiKey} className="rounded-xl border border-border bg-background p-3 space-y-3">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-1 grid sm:grid-cols-2 gap-3">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Label</label>
+                                    <input
+                                      value={sub.label}
+                                      onChange={(e) => updateSubLabel(cat.uiKey, sub.uiKey, e.target.value)}
+                                      className="admin-input"
+                                      placeholder="e.g. Road Running"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                                      ID (slug) {!manualIds.current.has(sub.uiKey) && sub.label && <span className="text-brand normal-case font-normal">· auto</span>}
+                                    </label>
+                                    <input
+                                      value={sub.id}
+                                      onChange={(e) => updateSubId(cat.uiKey, sub.uiKey, e.target.value)}
+                                      className="admin-input font-mono text-xs"
+                                      placeholder="e.g. road-running"
+                                    />
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => removeSubcategory(cat.uiKey, sub.uiKey)}
+                                  type="button"
+                                  className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors shrink-0 mt-5"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </div>
+
+                              {subUrl && (
+                                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-brand bg-brand/8 border border-brand/15 px-2.5 py-1 rounded-lg">
+                                  🔗 {subUrl}
+                                </span>
+                              )}
+
+                              <textarea
+                                value={sub.desc}
+                                onChange={(e) => updateSubDesc(cat.uiKey, sub.uiKey, e.target.value)}
+                                className="admin-input resize-none"
+                                rows={2}
+                                placeholder="Short description shown in navbar dropdown"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {config.categories.length === 0 && (
-          <div className="rounded-3xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
-            No categories yet. Add your first category to start building the catalog.
+          <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+            No categories yet. Click &quot;Add Category&quot; to get started.
           </div>
         )}
       </div>

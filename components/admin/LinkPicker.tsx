@@ -5,18 +5,19 @@ import { ChevronDown, ExternalLink } from "lucide-react";
 
 const ROUTES = [
   { label: "Home", value: "/" },
-  { label: "Shop - All", value: "/shop" },
-  { label: "Shop - Running", value: "/shop/running" },
-  { label: "Shop - Casual", value: "/shop/casual" },
-  { label: "Shop - Formal", value: "/shop/formal" },
-  { label: "Shop - Sports", value: "/shop/sports" },
-  { label: "Shop - Limited", value: "/shop/limited" },
+  { label: "Shop — All", value: "/shop" },
+  { label: "Shop — Running", value: "/shop?category=running" },
+  { label: "Shop — Casual", value: "/shop?category=casual" },
+  { label: "Shop — Formal", value: "/shop?category=formal" },
+  { label: "Shop — Sports", value: "/shop?category=sports" },
+  { label: "Shop — Limited", value: "/shop?category=limited" },
+  { label: "Store Locator", value: "/store_locator" },
+  { label: "Track Order", value: "/track" },
   { label: "About Us", value: "/about" },
   { label: "Contact", value: "/contact" },
   { label: "Privacy Policy", value: "/privacy" },
   { label: "Terms of Service", value: "/terms" },
   { label: "Cookie Policy", value: "/cookies" },
-  { label: "Track Order", value: "/track" },
 ];
 
 interface LinkPickerProps {
