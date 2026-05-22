@@ -117,11 +117,18 @@ export default function AdminProductsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${CATEGORY_COLORS[product.category] ?? "bg-muted text-muted-foreground"}`}
-                    >
-                      {product.category}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full font-medium w-fit ${CATEGORY_COLORS[product.category] ?? "bg-muted text-muted-foreground"}`}
+                      >
+                        {product.category}
+                      </span>
+                      {product.subcategory && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground w-fit">
+                          {product.subcategory}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-foreground">৳{product.price.toLocaleString()}</p>
