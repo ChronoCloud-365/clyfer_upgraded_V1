@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, Plus, X } from "lucide-react";
 import type { CatalogConfig, Product, ProductCategory } from "@/types";
 import { CloudinaryUpload } from "./CloudinaryUpload";
 import { DEFAULT_CATALOG } from "@/lib/config-defaults";
@@ -33,6 +33,14 @@ export function ProductForm({ initial = {}, productId }: Props) {
   const [isFeatured, setIsFeatured] = useState(initial.is_featured ?? false);
   const [inStock, setInStock] = useState(initial.in_stock ?? true);
   const [catalog, setCatalog] = useState<CatalogConfig>(DEFAULT_CATALOG);
+  const [addingCat, setAddingCat] = useState(false);
+  const [newCatLabel, setNewCatLabel] = useState("");
+  const [savingCat, setSavingCat] = useState(false);
+  const [addingSub, setAddingSub] = useState(false);
+  const [newSubLabel, setNewSubLabel] = useState("");
+  const [savingSub, setSavingSub] = useState(false);
+  const catInputRef = useRef<HTMLInputElement>(null);
+  const subInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -56,6 +64,64 @@ export function ProductForm({ initial = {}, productId }: Props) {
 
   function autoSlug(n: string) {
     return n.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  }
+
+  function slugify(text: string) {
+    return text.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+
+  async function saveCatalog(updated: CatalogConfig) {
+    await fetch("/api/admin/site-config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "catalog", value: updated }),
+    });
+    setCatalog(updated);
+  }
+
+  async function handleAddCategory() {
+    const label = newCatLabel.trim();
+    if (!label) return;
+    const id = slugify(label);
+    if (catalog.categories.some((c) => c.id === id)) return;
+    setSavingCat(true);
+    const updated: CatalogConfig = {
+      categories: [
+        ...catalog.categories,
+        { id, label, href: `/shop?category=${id}`, description: "", subcategories: [] },
+      ],
+    };
+    await saveCatalog(updated);
+    setCategory(id as ProductCategory);
+    setSubcategory("");
+    setNewCatLabel("");
+    setAddingCat(false);
+    setSavingCat(false);
+  }
+
+  async function handleAddSubcategory() {
+    const label = newSubLabel.trim();
+    if (!label) return;
+    const id = slugify(label);
+    setSavingSub(true);
+    const updated: CatalogConfig = {
+      categories: catalog.categories.map((c) =>
+        c.id !== category
+          ? c
+          : {
+              ...c,
+              subcategories: [
+                ...(c.subcategories ?? []),
+                { id, label, href: `/shop?category=${category}&subcategory=${id}`, desc: "" },
+              ],
+            }
+      ),
+    };
+    await saveCatalog(updated);
+    setSubcategory(id);
+    setNewSubLabel("");
+    setAddingSub(false);
+    setSavingSub(false);
   }
 
   function toggleSize(size: number) {
@@ -150,7 +216,7 @@ export function ProductForm({ initial = {}, productId }: Props) {
           </div>
           <div className="col-span-2 space-y-3">
             <label className="admin-label">Category *</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               {categories.map((item) => (
                 <button
                   key={item.id}
@@ -165,40 +231,94 @@ export function ProductForm({ initial = {}, productId }: Props) {
                   {item.label}
                 </button>
               ))}
+
+              {addingCat ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    ref={catInputRef}
+                    autoFocus
+                    value={newCatLabel}
+                    onChange={(e) => setNewCatLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } if (e.key === "Escape") { setAddingCat(false); setNewCatLabel(""); } }}
+                    placeholder="Category name"
+                    className="h-9 px-3 rounded-xl border border-brand/50 bg-brand/5 text-sm text-foreground outline-none w-36 focus:ring-1 focus:ring-brand/40"
+                  />
+                  <button type="button" onClick={handleAddCategory} disabled={savingCat || !newCatLabel.trim()} className="p-2 rounded-lg bg-brand/15 text-brand hover:bg-brand/25 transition-colors disabled:opacity-50">
+                    {savingCat ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                  </button>
+                  <button type="button" onClick={() => { setAddingCat(false); setNewCatLabel(""); }} className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => { setAddingCat(true); setTimeout(() => catInputRef.current?.focus(), 50); }}
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium border border-dashed border-border text-muted-foreground hover:border-brand/40 hover:text-brand transition-all"
+                >
+                  <Plus className="size-3.5" /> New
+                </button>
+              )}
             </div>
 
-            {subcategoryOptions.length > 0 && (
-              <div className="space-y-2 pl-1">
-                <label className="admin-label">Subcategory</label>
-                <div className="flex flex-wrap gap-2">
+            <div className="space-y-2 pl-1">
+              <label className="admin-label">Subcategory</label>
+              <div className="flex flex-wrap gap-2 items-center">
+                <button
+                  type="button"
+                  onClick={() => setSubcategory("")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                    subcategory === ""
+                      ? "border-brand/50 bg-brand/10 text-brand"
+                      : "border-border bg-muted/20 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  None
+                </button>
+                {subcategoryOptions.map((item) => (
                   <button
+                    key={item.id}
                     type="button"
-                    onClick={() => setSubcategory("")}
+                    onClick={() => setSubcategory(item.id)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                      subcategory === ""
+                      subcategory === item.id
                         ? "border-brand/50 bg-brand/10 text-brand"
                         : "border-border bg-muted/20 text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    All
+                    {item.label}
                   </button>
-                  {subcategoryOptions.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setSubcategory(item.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                        subcategory === item.id
-                          ? "border-brand/50 bg-brand/10 text-brand"
-                          : "border-border bg-muted/20 text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {item.label}
+                ))}
+
+                {addingSub ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      ref={subInputRef}
+                      autoFocus
+                      value={newSubLabel}
+                      onChange={(e) => setNewSubLabel(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddSubcategory(); } if (e.key === "Escape") { setAddingSub(false); setNewSubLabel(""); } }}
+                      placeholder="Subcategory name"
+                      className="h-8 px-2.5 rounded-lg border border-brand/50 bg-brand/5 text-xs text-foreground outline-none w-32 focus:ring-1 focus:ring-brand/40"
+                    />
+                    <button type="button" onClick={handleAddSubcategory} disabled={savingSub || !newSubLabel.trim()} className="p-1.5 rounded-lg bg-brand/15 text-brand hover:bg-brand/25 transition-colors disabled:opacity-50">
+                      {savingSub ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
                     </button>
-                  ))}
-                </div>
+                    <button type="button" onClick={() => { setAddingSub(false); setNewSubLabel(""); }} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setAddingSub(true); setTimeout(() => subInputRef.current?.focus(), 50); }}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-dashed border-border text-muted-foreground hover:border-brand/40 hover:text-brand transition-all"
+                  >
+                    <Plus className="size-3" /> New
+                  </button>
+                )}
               </div>
-            )}
+            </div>
           </div>
           <div className="flex items-center gap-6 pt-5">
             <label className="flex items-center gap-2 cursor-pointer">
