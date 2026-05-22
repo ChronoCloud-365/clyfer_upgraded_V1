@@ -159,7 +159,7 @@ export default function AdminNavbarPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-semibold text-foreground">{category.label}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{category.href}</p>
+                    <p className="text-xs text-muted-foreground mt-1">/shop?category={category.id}</p>
                   </div>
                   {active && (
                     <span className="text-brand">
@@ -201,7 +201,7 @@ export default function AdminNavbarPage() {
               >
                 <div>
                   <p className="font-medium text-foreground">{category.label}</p>
-                  <p className="text-xs text-muted-foreground">{category.href}</p>
+                  <p className="text-xs text-muted-foreground">/shop?category={category.id}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
