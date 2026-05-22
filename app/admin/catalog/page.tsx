@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, ChevronDown, ChevronRight, Tag, Layers } from "lucide-react";
 import type { CatalogConfig, CatalogCategory, CatalogSubcategory } from "@/types";
 import { DEFAULT_CATALOG } from "@/lib/config-defaults";
 
@@ -40,14 +40,22 @@ function stripUiKeys(config: UiConfig): CatalogConfig {
   };
 }
 
+const CAT_COLORS = [
+  "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "bg-green-500/10 text-green-400 border-green-500/20",
+  "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  "bg-rose-500/10 text-rose-400 border-rose-500/20",
+  "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  "bg-orange-500/10 text-orange-400 border-orange-500/20",
+];
+
 export default function AdminCatalogPage() {
   const [config, setConfig] = useState<UiConfig>(withUiKeys(DEFAULT_CATALOG));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-  // Track which IDs were manually edited (don't auto-overwrite those)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const manualIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -55,7 +63,6 @@ export default function AdminCatalogPage() {
       .then((r) => r.json())
       .then((d) => {
         const loaded = withUiKeys(d.value ?? DEFAULT_CATALOG);
-        // All loaded categories have real IDs — mark them as manual so we don't overwrite
         loaded.categories.forEach((c) => {
           manualIds.current.add(c.uiKey);
           c.subcategories.forEach((s) => manualIds.current.add(s.uiKey));
@@ -65,8 +72,8 @@ export default function AdminCatalogPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function toggleCollapse(uiKey: string) {
-    setCollapsed((prev) => {
+  function toggleExpand(uiKey: string) {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(uiKey)) next.delete(uiKey);
       else next.add(uiKey);
@@ -76,6 +83,7 @@ export default function AdminCatalogPage() {
 
   function addCategory() {
     const uiKey = makeUiKey();
+    setExpanded((prev) => new Set(prev).add(uiKey));
     setConfig((prev) => ({
       ...prev,
       categories: [
@@ -123,13 +131,7 @@ export default function AdminCatalogPage() {
       categories: prev.categories.map((c) =>
         c.uiKey !== catUiKey
           ? c
-          : {
-              ...c,
-              subcategories: [
-                ...c.subcategories,
-                { uiKey: subUiKey, id: "", label: "", href: "/shop", desc: "" },
-              ],
-            }
+          : { ...c, subcategories: [...c.subcategories, { uiKey: subUiKey, id: "", label: "", href: "/shop", desc: "" }] }
       ),
     }));
   }
@@ -211,18 +213,19 @@ export default function AdminCatalogPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between gap-4">
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Catalog Manager</h1>
+          <h1 className="text-2xl font-bold text-foreground">Catalog</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Categories and subcategories — URLs are auto-generated from IDs.
+            Manage categories and subcategories. URLs are auto-generated.
           </p>
         </div>
         <button
           onClick={save}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-70"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shrink-0 disabled:opacity-70 transition-all"
           style={{ background: "oklch(0.78 0.18 72)", color: "oklch(0.09 0 0)" }}
         >
           {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
@@ -230,186 +233,239 @@ export default function AdminCatalogPage() {
         </button>
       </div>
 
-      {/* How it works note */}
-      <div className="rounded-2xl bg-brand/5 border border-brand/15 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
-        <span className="font-semibold text-foreground">How it works:</span> Type a category label — the ID auto-fills as a slug.
-        URLs are auto-generated: <code className="bg-muted px-1 py-0.5 rounded text-[11px]">/shop?category=ID</code> and{" "}
-        <code className="bg-muted px-1 py-0.5 rounded text-[11px]">/shop?category=CAT&subcategory=SUB</code>. No manual URL selection needed.
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl border border-border bg-card px-4 py-3 flex items-center gap-3">
+          <div className="size-9 rounded-xl bg-brand/10 flex items-center justify-center">
+            <Layers className="size-4 text-brand" />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-foreground">{config.categories.length}</p>
+            <p className="text-xs text-muted-foreground">Categories</p>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card px-4 py-3 flex items-center gap-3">
+          <div className="size-9 rounded-xl bg-brand/10 flex items-center justify-center">
+            <Tag className="size-4 text-brand" />
+          </div>
+          <div>
+            <p className="text-xl font-bold text-foreground">
+              {config.categories.reduce((sum, c) => sum + c.subcategories.length, 0)}
+            </p>
+            <p className="text-xs text-muted-foreground">Subcategories</p>
+          </div>
+        </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-          Categories ({config.categories.length})
-        </h2>
-        <button
-          onClick={addCategory}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-        >
-          <Plus className="size-4" /> Add Category
-        </button>
-      </div>
+      {/* Category list */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+            Categories ({config.categories.length})
+          </p>
+          <button
+            onClick={addCategory}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+          >
+            <Plus className="size-3.5" /> Add Category
+          </button>
+        </div>
 
-      <div className="space-y-4">
-        {config.categories.map((cat) => {
-          const isCollapsed = collapsed.has(cat.uiKey);
-          const catUrl = cat.id ? `/shop?category=${cat.id}` : null;
-
-          return (
-            <div key={cat.uiKey} className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-              {/* Category header row */}
-              <div className="flex items-center gap-3 p-4">
-                <button
-                  type="button"
-                  onClick={() => toggleCollapse(cat.uiKey)}
-                  className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors shrink-0"
-                >
-                  {isCollapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
-                </button>
-
-                <div className="flex-1 grid sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Label</label>
-                    <input
-                      value={cat.label}
-                      onChange={(e) => updateCatLabel(cat.uiKey, e.target.value)}
-                      className="admin-input"
-                      placeholder="e.g. Running"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                      ID (slug) {!manualIds.current.has(cat.uiKey) && cat.label && <span className="text-brand normal-case font-normal">· auto</span>}
-                    </label>
-                    <div className="relative">
-                      <input
-                        value={cat.id}
-                        onChange={(e) => updateCatId(cat.uiKey, e.target.value)}
-                        className="admin-input font-mono text-xs"
-                        placeholder="e.g. running"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => removeCategory(cat.uiKey)}
-                  type="button"
-                  className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
-
-              {/* Auto-generated URL badge */}
-              {catUrl && (
-                <div className="px-4 pb-2 -mt-1">
-                  <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-brand bg-brand/8 border border-brand/15 px-2.5 py-1 rounded-lg">
-                    🔗 {catUrl}
-                  </span>
-                </div>
-              )}
-
-              {!isCollapsed && (
-                <div className="px-4 pb-4 space-y-4 border-t border-border mt-2 pt-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Description</label>
-                    <textarea
-                      value={cat.description ?? ""}
-                      onChange={(e) => updateCatDesc(cat.uiKey, e.target.value)}
-                      className="admin-input resize-none"
-                      rows={2}
-                      placeholder="Short description shown in navbar dropdown"
-                    />
-                  </div>
-
-                  {/* Subcategories */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                        Subcategories ({cat.subcategories.length})
-                      </h3>
-                      <button
-                        onClick={() => addSubcategory(cat.uiKey)}
-                        type="button"
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-                      >
-                        <Plus className="size-3" /> Add Subcategory
-                      </button>
-                    </div>
-
-                    {cat.subcategories.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-border py-6 text-center text-xs text-muted-foreground">
-                        No subcategories yet.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {cat.subcategories.map((sub) => {
-                          const subUrl = cat.id && sub.id
-                            ? `/shop?category=${cat.id}&subcategory=${sub.id}`
-                            : null;
-
-                          return (
-                            <div key={sub.uiKey} className="rounded-xl border border-border bg-background p-3 space-y-3">
-                              <div className="flex items-start gap-3">
-                                <div className="flex-1 grid sm:grid-cols-2 gap-3">
-                                  <div className="space-y-1">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Label</label>
-                                    <input
-                                      value={sub.label}
-                                      onChange={(e) => updateSubLabel(cat.uiKey, sub.uiKey, e.target.value)}
-                                      className="admin-input"
-                                      placeholder="e.g. Road Running"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-                                      ID (slug) {!manualIds.current.has(sub.uiKey) && sub.label && <span className="text-brand normal-case font-normal">· auto</span>}
-                                    </label>
-                                    <input
-                                      value={sub.id}
-                                      onChange={(e) => updateSubId(cat.uiKey, sub.uiKey, e.target.value)}
-                                      className="admin-input font-mono text-xs"
-                                      placeholder="e.g. road-running"
-                                    />
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => removeSubcategory(cat.uiKey, sub.uiKey)}
-                                  type="button"
-                                  className="p-2 rounded-lg border border-border text-red-400 hover:bg-red-500/10 transition-colors shrink-0 mt-5"
-                                >
-                                  <Trash2 className="size-4" />
-                                </button>
-                              </div>
-
-                              {subUrl && (
-                                <span className="inline-flex items-center gap-1.5 text-[10px] font-mono text-brand bg-brand/8 border border-brand/15 px-2.5 py-1 rounded-lg">
-                                  🔗 {subUrl}
-                                </span>
-                              )}
-
-                              <textarea
-                                value={sub.desc}
-                                onChange={(e) => updateSubDesc(cat.uiKey, sub.uiKey, e.target.value)}
-                                className="admin-input resize-none"
-                                rows={2}
-                                placeholder="Short description shown in navbar dropdown"
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {config.categories.length === 0 && (
+        {config.categories.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
             No categories yet. Click &quot;Add Category&quot; to get started.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {config.categories.map((cat, catIndex) => {
+              const isOpen = expanded.has(cat.uiKey);
+              const catUrl = cat.id ? `/shop?category=${cat.id}` : null;
+              const colorClass = CAT_COLORS[catIndex % CAT_COLORS.length];
+
+              return (
+                <div
+                  key={cat.uiKey}
+                  className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm"
+                >
+                  {/* Collapsed header — always visible */}
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(cat.uiKey)}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-muted/30 transition-colors"
+                  >
+                    <ChevronRight
+                      className={`size-4 text-muted-foreground shrink-0 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                    />
+
+                    {/* Color dot */}
+                    <span className={`size-7 rounded-lg border flex items-center justify-center shrink-0 text-xs font-bold ${colorClass}`}>
+                      {cat.label ? cat.label[0].toUpperCase() : "#"}
+                    </span>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-foreground text-sm">
+                          {cat.label || <span className="text-muted-foreground font-normal italic">Unnamed</span>}
+                        </span>
+                        {catUrl && (
+                          <span className="font-mono text-[10px] text-brand bg-brand/8 border border-brand/15 px-2 py-0.5 rounded-md">
+                            {catUrl}
+                          </span>
+                        )}
+                      </div>
+                      {cat.subcategories.length > 0 && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {cat.subcategories.length} subcategor{cat.subcategories.length === 1 ? "y" : "ies"}:{" "}
+                          {cat.subcategories.map((s) => s.label).filter(Boolean).join(", ")}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeCategory(cat.uiKey); }}
+                      type="button"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </button>
+
+                  {/* Expanded body */}
+                  {isOpen && (
+                    <div className="border-t border-border px-4 py-4 space-y-4">
+                      {/* Label + ID */}
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                            Label
+                          </label>
+                          <input
+                            value={cat.label}
+                            onChange={(e) => updateCatLabel(cat.uiKey, e.target.value)}
+                            className="admin-input"
+                            placeholder="e.g. Running"
+                            autoFocus={!cat.label}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                            ID (slug)
+                            {!manualIds.current.has(cat.uiKey) && cat.label && (
+                              <span className="text-brand normal-case font-normal">· auto</span>
+                            )}
+                          </label>
+                          <input
+                            value={cat.id}
+                            onChange={(e) => updateCatId(cat.uiKey, e.target.value)}
+                            className="admin-input font-mono text-xs"
+                            placeholder="e.g. running"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                          Description <span className="normal-case font-normal">(shown in navbar dropdown)</span>
+                        </label>
+                        <textarea
+                          value={cat.description ?? ""}
+                          onChange={(e) => updateCatDesc(cat.uiKey, e.target.value)}
+                          className="admin-input resize-none"
+                          rows={2}
+                          placeholder="Short description…"
+                        />
+                      </div>
+
+                      {/* Subcategories */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
+                            Subcategories ({cat.subcategories.length})
+                          </p>
+                          <button
+                            onClick={() => addSubcategory(cat.uiKey)}
+                            type="button"
+                            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border border-dashed border-border text-muted-foreground hover:border-brand/40 hover:text-brand transition-all"
+                          >
+                            <Plus className="size-3" /> Add
+                          </button>
+                        </div>
+
+                        {cat.subcategories.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-border py-5 text-center text-xs text-muted-foreground">
+                            No subcategories yet
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {cat.subcategories.map((sub) => {
+                              const subUrl = cat.id && sub.id
+                                ? `/shop?category=${cat.id}&subcategory=${sub.id}`
+                                : null;
+
+                              return (
+                                <div key={sub.uiKey} className="rounded-xl border border-border bg-background/60 p-3 space-y-2.5">
+                                  <div className="flex items-start gap-2">
+                                    <div className="flex-1 grid sm:grid-cols-2 gap-2">
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Label</label>
+                                        <input
+                                          value={sub.label}
+                                          onChange={(e) => updateSubLabel(cat.uiKey, sub.uiKey, e.target.value)}
+                                          className="admin-input"
+                                          placeholder="e.g. Road Running"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                                          ID (slug)
+                                          {!manualIds.current.has(sub.uiKey) && sub.label && (
+                                            <span className="text-brand normal-case font-normal">· auto</span>
+                                          )}
+                                        </label>
+                                        <input
+                                          value={sub.id}
+                                          onChange={(e) => updateSubId(cat.uiKey, sub.uiKey, e.target.value)}
+                                          className="admin-input font-mono text-xs"
+                                          placeholder="e.g. road-running"
+                                        />
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => removeSubcategory(cat.uiKey, sub.uiKey)}
+                                      type="button"
+                                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 mt-5"
+                                    >
+                                      <Trash2 className="size-3.5" />
+                                    </button>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {subUrl && (
+                                      <span className="font-mono text-[10px] text-brand bg-brand/8 border border-brand/15 px-2 py-0.5 rounded-md">
+                                        {subUrl}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <textarea
+                                    value={sub.desc}
+                                    onChange={(e) => updateSubDesc(cat.uiKey, sub.uiKey, e.target.value)}
+                                    className="admin-input resize-none"
+                                    rows={1}
+                                    placeholder="Short description (optional)"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
