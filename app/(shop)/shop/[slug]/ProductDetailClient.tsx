@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -12,31 +12,57 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import type { Product } from "@/types";
+import type { Product, ProductSize } from "@/types";
 import { useCartStore } from "@/store/cart";
 
 interface Props {
   product: Product;
 }
 
-export function ProductDetailClient({ product }: Props) {
+export function ProductDetailClient({ product: initialProduct }: Props) {
+  const [product, setProduct] = useState(initialProduct);
+  const [stockUnavailable, setStockUnavailable] = useState(false);
+  const productId = initialProduct.id;
+  const inventoryManaged = initialProduct.inventory_managed;
+  useEffect(() => {
+    if (!inventoryManaged) return;
+    const controller = new AbortController();
+    async function refresh() {
+      try {
+        const response = await fetch(`/api/inventory/products?id=${productId}`, { cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error("Stock unavailable");
+        const data = await response.json();
+        if (!controller.signal.aborted) { setProduct(data.product); setStockUnavailable(false); }
+      } catch { if (!controller.signal.aborted) setStockUnavailable(true); }
+    }
+    void refresh();
+    const timer = setInterval(() => void refresh(), 10000);
+    window.addEventListener("focus", refresh);
+    return () => { controller.abort(); clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, [productId, inventoryManaged]);
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
 
-  const [selectedSize, setSelectedSize] = useState<number | null>(
-    product.sizes?.[0] ?? null
+  const firstAvailable = initialProduct.variants?.find((variant) => variant.quantity > 0);
+  const [selectedSize, setSelectedSize] = useState<ProductSize | null>(
+    firstAvailable?.size ?? product.sizes?.[0] ?? null
   );
-  const [selectedColor, setSelectedColor] = useState(product.colors?.[0] ?? null);
+  const [selectedColor, setSelectedColor] = useState(product.colors.find((color) => color.name.toLowerCase() === firstAvailable?.color.toLowerCase()) ?? product.colors?.[0] ?? null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
+  const variant = product.variants?.find((entry) => entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && entry.size === String(selectedSize));
+  const available = inventoryManaged ? variant?.quantity ?? 0 : product.in_stock ? 1000 : 0;
+  const canBuy = !stockUnavailable && available >= quantity && selectedSize !== null;
 
   const discount = product.original_price
     ? Math.round((1 - product.price / product.original_price) * 100)
     : null;
 
   function handleAddToCart() {
-    if (!selectedSize) { toast.error("Please select a size"); return; }
+    if (!selectedSize) { toast.error("Please select a size"); return false; }
+    const existing = useCartStore.getState().items.find((item) => item.product.id === product.id && String(item.size) === String(selectedSize) && item.color.name.toLowerCase() === selectedColor?.name.toLowerCase());
+    if (!canBuy || quantity + (existing?.quantity ?? 0) > available) { toast.error(`Only ${available} units are available for this color and size, including any already in your cart.`); return false; }
     // Call addItem qty times or just once + handle qty via store
     for (let i = 0; i < quantity; i++) {
       addItem(
@@ -47,16 +73,11 @@ export function ProductDetailClient({ product }: Props) {
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+    return true;
   }
 
   function handleBuyNow() {
-    if (!selectedSize) { toast.error("Please select a size"); return; }
-    addItem(
-      product,
-      selectedSize,
-      selectedColor ?? { name: "Default", hex: "#000" }
-    );
-    router.push("/checkout");
+    if (handleAddToCart()) router.push("/checkout");
   }
 
   return (
@@ -99,6 +120,7 @@ export function ProductDetailClient({ product }: Props) {
                       i === activeImage ? "border-brand" : "border-transparent"
                     }`}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -146,15 +168,14 @@ export function ProductDetailClient({ product }: Props) {
                   {product.colors.map((color) => (
                     <button
                       key={color.name}
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => { setSelectedColor(color); setQuantity(1); }}
                       title={color.name}
-                      className={`size-9 rounded-full border-2 transition-all ${
+                      className={`min-h-9 rounded-full border-2 px-3 text-xs transition-all ${
                         selectedColor?.name === color.name
                           ? "border-foreground scale-110"
                           : "border-transparent hover:scale-105"
                       }`}
-                      style={{ background: color.hex }}
-                    />
+                    >{color.name}</button>
                   ))}
                 </div>
               </div>
@@ -170,8 +191,9 @@ export function ProductDetailClient({ product }: Props) {
                   {product.sizes.map((size) => (
                     <button
                       key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`min-w-[44px] h-10 px-3 rounded-xl text-sm font-medium transition-all border ${
+                      onClick={() => { setSelectedSize(size); setQuantity(1); }}
+                      disabled={Boolean(inventoryManaged && !product.variants?.some((entry) => entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && entry.size === String(size) && entry.quantity > 0))}
+                      className={`min-w-[44px] h-10 px-3 rounded-xl text-sm font-medium transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${
                         selectedSize === size
                           ? "border-transparent text-zinc-900"
                           : "border-border text-muted-foreground hover:border-zinc-400 hover:text-foreground"
@@ -189,6 +211,8 @@ export function ProductDetailClient({ product }: Props) {
               </div>
             )}
 
+            {inventoryManaged && <div className="rounded-xl border border-border p-4 text-sm"><p className="font-semibold">Live stock by color and size</p><div className="mt-2 flex flex-wrap gap-2">{product.variants?.map((entry) => <span key={entry.id} className="rounded-lg bg-muted px-2 py-1 text-xs">{entry.color} / {entry.size}: {entry.quantity} available</span>)}</div><p className="mt-2 text-muted-foreground" role="status">{stockUnavailable ? "Stock updates unavailable. Please refresh before ordering." : available ? `${available} units available for your selection.` : "This color and size is out of stock."}</p></div>}
+
             {/* Quantity */}
             <div>
               <p className="text-sm font-medium text-foreground mb-3">Quantity</p>
@@ -201,7 +225,8 @@ export function ProductDetailClient({ product }: Props) {
                 </button>
                 <span className="w-10 text-center font-semibold">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
+                  onClick={() => setQuantity(Math.min(1000, available, quantity + 1))}
+                  disabled={quantity >= available || quantity >= 1000}
                   className="size-9 rounded-lg border border-border flex items-center justify-center hover:bg-accent transition-colors"
                 >
                   <Plus className="size-4" />
@@ -213,7 +238,8 @@ export function ProductDetailClient({ product }: Props) {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl border font-semibold text-sm transition-all hover:bg-accent"
+                disabled={!canBuy}
+                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl border font-semibold text-sm transition-all hover:bg-accent disabled:opacity-40"
               >
                 {added ? (
                   <>
@@ -229,7 +255,8 @@ export function ProductDetailClient({ product }: Props) {
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all hover:opacity-90"
+                disabled={!canBuy}
+                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-40"
                 style={{
                   background: "oklch(0.78 0.18 72)",
                   color: "oklch(0.09 0 0)",

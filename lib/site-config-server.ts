@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/server";
+import { INVENTORY_CATEGORIES, categoryId } from "./inventory/model";
 import {
   DEFAULT_NAVBAR,
   DEFAULT_NAVBAR_SETTINGS,
@@ -138,7 +139,11 @@ export async function getStoreLocatorConfig(): Promise<StoreLocatorConfig> {
 
 export async function getCatalogConfig(): Promise<CatalogConfig> {
   const config = await getSiteConfig<CatalogConfig>("catalog", DEFAULT_CATALOG);
-  return {
-    categories: Array.isArray(config?.categories) ? config.categories : DEFAULT_CATALOG.categories,
-  };
+  const existing = Array.isArray(config?.categories) ? config.categories : DEFAULT_CATALOG.categories;
+  const inventory = INVENTORY_CATEGORIES.map((entry) => ({
+    id: categoryId(entry.name), label: entry.name, href: `/shop?category=${categoryId(entry.name)}`,
+    subcategories: entry.subcategories.map((name) => ({ id: categoryId(name), label: name,
+      href: `/shop?category=${categoryId(entry.name)}&subcategory=${categoryId(name)}`, desc: "" })),
+  }));
+  return { categories: [...inventory, ...existing.filter((entry) => !inventory.some((category) => category.id === entry.id))] };
 }

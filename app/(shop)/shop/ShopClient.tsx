@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import type { Product, CatalogCategory } from "@/types";
+import { useLiveProducts } from "@/lib/use-live-products";
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function ShopClient({ initialProducts, params, categories }: Props) {
+  const liveProducts = useLiveProducts(initialProducts, params);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -47,7 +49,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
   }, [categories, activeCategory]);
 
   const filtered = useMemo(() => {
-    let list = [...initialProducts];
+    let list = [...liveProducts];
 
     if (search) {
       const q = search.toLowerCase();
@@ -78,7 +80,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
     }
 
     return list;
-  }, [initialProducts, search, activeSubcategory, sort]);
+  }, [liveProducts, search, activeSubcategory, sort]);
 
   function updateUrl(next: { search?: string; category?: string; subcategory?: string }) {
     const query = new URLSearchParams(searchParams.toString());
@@ -229,6 +231,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
                       <h3 className="font-semibold text-sm text-foreground group-hover:text-brand transition-colors mt-0.5 truncate">
                         {product.name}
                       </h3>
+                      {product.inventory_managed && <p className="mt-1 text-xs text-muted-foreground">{product.in_stock ? `${product.variants?.reduce((sum, variant) => sum + variant.quantity, 0)} units available · Choose color / size` : "Out of stock"}</p>}
                       <div className="flex items-baseline gap-2 mt-1">
                         <span className="font-bold text-foreground">৳{product.price.toLocaleString()}</span>
                         {product.original_price && (

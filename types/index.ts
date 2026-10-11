@@ -7,6 +7,8 @@ export interface ProductColor {
 
 export type ProductCategory = string;
 
+export type ProductSize = number | string;
+
 export interface Product {
   id: string;
   name: string;
@@ -18,7 +20,9 @@ export interface Product {
   images: string[];
   category: ProductCategory;
   subcategory?: string;
-  sizes: number[];
+  sizes: ProductSize[];
+  inventory_managed?: boolean;
+  variants?: { id: string; color: string; size: string; quantity: number }[];
   colors: ProductColor[];
   tags: string[];
   rating: number;
@@ -46,7 +50,7 @@ export interface Order {
   city: string;
   product_id?: string;
   product_name: string;
-  size?: number;
+  size?: ProductSize;
   color?: string;
   quantity: number;
   total_price: number;
@@ -60,7 +64,7 @@ export interface Order {
 export interface CartItem {
   product: Product;
   quantity: number;
-  size: number;
+  size: ProductSize;
   color: ProductColor;
 }
 

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { CartItem, Product, ProductColor } from "@/types";
+import type { CartItem, Product, ProductColor, ProductSize } from "@/types";
 
 interface CartState {
   items: CartItem[];
@@ -13,11 +13,11 @@ interface CartState {
   totalPrice: () => number;
 
   // Actions
-  addItem: (product: Product, size: number, color: ProductColor) => void;
-  removeItem: (productId: string, size: number, colorName: string) => void;
+  addItem: (product: Product, size: ProductSize, color: ProductColor) => void;
+  removeItem: (productId: string, size: ProductSize, colorName: string) => void;
   updateQuantity: (
     productId: string,
-    size: number,
+    size: ProductSize,
     colorName: string,
     qty: number
   ) => void;
@@ -46,17 +46,19 @@ export const useCartStore = create<CartState>()(
           const existing = state.items.find(
             (i) =>
               i.product.id === product.id &&
-              i.size === size &&
+              String(i.size) === String(size) &&
               i.color.name === color.name
           );
+          const available = product.inventory_managed ? product.variants?.find((variant) => variant.size === String(size) && variant.color.toLowerCase() === color.name.toLowerCase())?.quantity ?? 0 : Infinity;
+          if ((existing?.quantity ?? 0) >= available) return state;
 
           if (existing) {
             return {
               items: state.items.map((i) =>
                 i.product.id === product.id &&
-                i.size === size &&
+                String(i.size) === String(size) &&
                 i.color.name === color.name
-                  ? { ...i, quantity: i.quantity + 1 }
+                  ? { ...i, product, quantity: i.quantity + 1 }
                   : i
               ),
             };
@@ -74,7 +76,7 @@ export const useCartStore = create<CartState>()(
             (i) =>
               !(
                 i.product.id === productId &&
-                i.size === size &&
+                String(i.size) === String(size) &&
                 i.color.name === colorName
               )
           ),
@@ -89,9 +91,9 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           items: state.items.map((i) =>
             i.product.id === productId &&
-            i.size === size &&
+            String(i.size) === String(size) &&
             i.color.name === colorName
-              ? { ...i, quantity: qty }
+              ? { ...i, quantity: Math.min(qty, i.product.inventory_managed ? i.product.variants?.find((variant) => variant.size === String(size) && variant.color.toLowerCase() === colorName.toLowerCase())?.quantity ?? 0 : qty) }
               : i
           ),
         }));

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, index }: ProductCardProps) {
+  const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const setCartOpen = useCartStore((s) => s.setCartOpen);
 
@@ -22,6 +24,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigating to the product page
+    if (product.inventory_managed) { router.push(`/shop/${product.slug}`); return; }
     
     // Use first available size and color, or fallbacks
     const size = product.sizes?.[0] || 40;
@@ -90,7 +93,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
               }}
             >
               <ShoppingCart className="size-4" />
-              Quick Add
+              {product.inventory_managed ? "Choose color / size" : "Quick Add"}
             </button>
           </div>
         </div>
@@ -105,6 +108,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
           <h3 className="text-base font-bold text-foreground group-hover:text-brand transition-colors leading-tight truncate">
             {product.name}
           </h3>
+          {product.inventory_managed && <p className="text-xs text-muted-foreground">{product.in_stock ? `${product.variants?.reduce((sum, variant) => sum + variant.quantity, 0)} units available` : "Out of stock"}</p>}
           
           <div className="flex items-center gap-3 pt-1">
             <span className="text-lg font-bold text-foreground tabular-nums">

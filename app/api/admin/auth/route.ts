@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const ADMIN_COOKIE = "clyfer_admin_session";
+import { ADMIN_COOKIE, createAdminSessionToken } from "@/lib/admin-session";
 
 export async function POST(request: NextRequest) {
   const { password } = await request.json();
@@ -14,7 +13,7 @@ export async function POST(request: NextRequest) {
   }
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(ADMIN_COOKIE, "authenticated", {
+  res.cookies.set(ADMIN_COOKIE, createAdminSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

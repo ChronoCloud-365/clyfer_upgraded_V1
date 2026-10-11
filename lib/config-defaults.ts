@@ -12,6 +12,7 @@ import type {
   CatalogConfig,
   StoreLocatorConfig,
 } from "@/types";
+import { INVENTORY_CATEGORIES, categoryId } from "./inventory/model";
 
 export const DEFAULT_NAVBAR: NavbarConfig = {
   categories: [],
@@ -19,48 +20,16 @@ export const DEFAULT_NAVBAR: NavbarConfig = {
 };
 
 export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
-  categoryIds: ["running", "casual", "formal", "sports", "limited"],
+  categoryIds: INVENTORY_CATEGORIES.map((category) => categoryId(category.name)),
   links: [],
 };
 
 export const DEFAULT_CATALOG: CatalogConfig = {
-  categories: [
-    {
-      id: "running",
-      label: "Running",
-      href: "/shop?category=running",
-      description: "Performance-driven running styles",
-      subcategories: [],
-    },
-    {
-      id: "casual",
-      label: "Casual",
-      href: "/shop?category=casual",
-      description: "Everyday comfort and clean silhouettes",
-      subcategories: [],
-    },
-    {
-      id: "formal",
-      label: "Formal",
-      href: "/shop?category=formal",
-      description: "Polished pairs for dressed-up looks",
-      subcategories: [],
-    },
-    {
-      id: "sports",
-      label: "Sports",
-      href: "/shop?category=sports",
-      description: "Court-ready and training-focused shoes",
-      subcategories: [],
-    },
-    {
-      id: "limited",
-      label: "Limited",
-      href: "/shop?category=limited",
-      description: "Special drops and exclusive releases",
-      subcategories: [],
-    },
-  ],
+  categories: INVENTORY_CATEGORIES.map((category) => ({
+    id: categoryId(category.name), label: category.name, href: `/shop?category=${categoryId(category.name)}`,
+    subcategories: category.subcategories.map((name) => ({ id: categoryId(name), label: name,
+      href: `/shop?category=${categoryId(category.name)}&subcategory=${categoryId(name)}`, desc: "" })),
+  })),
 };
 
 export const DEFAULT_HERO: HeroConfig = {

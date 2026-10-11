@@ -4,7 +4,7 @@ import { ShopClient } from "./ShopClient";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Shop — Clyfar Fashion",

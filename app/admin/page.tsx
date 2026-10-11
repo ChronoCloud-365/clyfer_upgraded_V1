@@ -1,5 +1,9 @@
 import { getAdminClient } from "@/lib/supabase/admin";
 import Link from "next/link";
+import { getInventoryDatabase, readInventory } from "@/lib/inventory/database";
+import { readInventoryOrders } from "@/lib/inventory/orders";
+
+export const dynamic = "force-dynamic";
 import {
   Package,
   ShoppingCart,
@@ -13,6 +17,12 @@ import {
 } from "lucide-react";
 
 async function getStats() {
+  const db = getInventoryDatabase();
+  const localOrders = readInventoryOrders(db);
+  const localProducts = readInventory(db).items;
+  const local = { totalProducts: localProducts.length, totalOrders: localOrders.length,
+    pendingOrders: localOrders.filter((order) => order.status === "pending").length,
+    revenue: localOrders.filter((order) => order.status !== "cancelled").reduce((sum, order) => sum + order.total_price, 0) };
   try {
     const supabase = getAdminClient();
     const [productsRes, ordersRes] = await Promise.all([
@@ -30,13 +40,13 @@ async function getStats() {
     const pending = orders.filter((o) => o.status === "pending").length;
 
     return {
-      totalProducts: products.length,
-      totalOrders: orders.length,
-      pendingOrders: pending,
-      revenue,
+      totalProducts: products.length + local.totalProducts,
+      totalOrders: orders.length + local.totalOrders,
+      pendingOrders: pending + local.pendingOrders,
+      revenue: revenue + local.revenue,
     };
   } catch {
-    return { totalProducts: 0, totalOrders: 0, pendingOrders: 0, revenue: 0 };
+    return local;
   }
 }
 
@@ -79,6 +89,7 @@ export default async function AdminDashboard() {
   ];
 
   const quickLinks = [
+    { label: "Inventory", desc: "Stock by item, color and size", href: "/admin/inventory", icon: Package },
     { label: "Edit Navbar", desc: "Manage categories & links", href: "/admin/navbar", icon: Navigation },
     { label: "Edit Hero", desc: "Slider images & text", href: "/admin/hero", icon: Image },
     { label: "Edit Footer", desc: "Links, social & tagline", href: "/admin/footer", icon: AlignLeft },

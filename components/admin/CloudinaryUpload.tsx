@@ -22,6 +22,8 @@ export function CloudinaryUpload({
   maxFiles = 5,
 }: CloudinaryUploadProps) {
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imageError, setImageError] = useState("");
 
   const onUpload = (result: CloudinaryUploadWidgetResults) => {
     const url =
@@ -60,6 +62,7 @@ export function CloudinaryUpload({
           >
             <Image
               fill
+              unoptimized
               src={url}
               alt="Uploaded Image"
               className="object-cover"
@@ -87,7 +90,7 @@ export function CloudinaryUpload({
         ))}
       </div>
 
-      {value.length < maxFiles && (
+      {value.length < maxFiles && (process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ? (
         <CldUploadWidget
           uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "ml_default"}
           onSuccess={(result) => onUpload(result)}
@@ -112,7 +115,10 @@ export function CloudinaryUpload({
             );
           }}
         </CldUploadWidget>
-      )}
+      ) : <div className="space-y-2"><label className="block text-sm font-medium" htmlFor="manual-product-image">Image URL</label><div className="flex gap-2"><input id="manual-product-image" type="url" value={imageUrl} placeholder="https://…" onChange={(e) => setImageUrl(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm" /><button type="button" className="rounded-lg border border-border px-3 py-2 text-sm" onClick={() => {
+        try { const url = new URL(imageUrl.trim()); if (!["http:", "https:"].includes(url.protocol)) throw new Error(); onAddImage(url.href); setImageUrl(""); setImageError(""); }
+        catch { setImageError("Enter a valid HTTP or HTTPS image URL."); }
+      }}>Add image</button></div>{imageError && <p role="alert" className="text-xs text-red-500">{imageError}</p>}</div>)}
     </div>
   );
 }

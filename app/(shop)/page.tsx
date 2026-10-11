@@ -6,7 +6,7 @@ import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { AllProductsSection } from "@/components/home/AllProductsSection";
 import type { FeaturedSectionConfig, Product } from "@/types";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Clyfar Fashion — Premium Footwear",

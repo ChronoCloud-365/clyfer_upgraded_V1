@@ -5,13 +5,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Filter } from "lucide-react";
 import type { CatalogCategory, Product } from "@/types";
 import { ProductCard } from "./ProductCard";
+import { useLiveProducts } from "@/lib/use-live-products";
 
 interface Props {
   products: Product[];
   categories?: CatalogCategory[];
 }
 
-export function AllProductsSection({ products, categories = [] }: Props) {
+export function AllProductsSection({ products: initialProducts, categories = [] }: Props) {
+  const products = useLiveProducts(initialProducts);
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc">("newest");
   const visibleCategories = categories.length

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -28,6 +28,8 @@ export default function CheckoutPage() {
   const [shippingRates, setShippingRates] = useState({ inside: 80, outside: 120 });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const pendingCheckout = useRef<{ signature: string; id: string } | null>(null);
+  const [orderReferences, setOrderReferences] = useState<string[]>([]);
 
   useEffect(() => {
     async function loadRates() {
@@ -37,8 +39,8 @@ export default function CheckoutPage() {
           const data = await res.json();
           if (data.value) {
             setShippingRates({
-              inside: data.value.insideDhaka || 80,
-              outside: data.value.outsideDhaka || 120,
+              inside: data.value.insideDhaka ?? 80,
+              outside: data.value.outsideDhaka ?? 120,
             });
           }
         }
@@ -69,6 +71,23 @@ export default function CheckoutPage() {
       : 0;
 
     try {
+      if (items.some((item) => item.product.inventory_managed)) {
+        if (!items.every((item) => item.product.inventory_managed)) throw new Error("Please place these inventory items in a separate checkout from the other products in your cart.");
+        const payload = {
+          customer_name: form.customer_name,
+          phone: `${form.phone}${form.phone2 ? ` / ${form.phone2}` : ""}`,
+          address: form.address, city: form.city, notes: form.notes, shipping_area: form.shipping_area,
+          items: items.map((item) => ({ product_id: item.product.id, size: item.size,
+            color: item.color.name, quantity: item.quantity, expected_price: item.product.price })),
+        };
+        const signature = JSON.stringify(payload);
+        if (pendingCheckout.current?.signature !== signature) pendingCheckout.current = { signature, id: crypto.randomUUID() };
+        const response = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, request_id: pendingCheckout.current.id }) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Order failed");
+        setOrderReferences(result.orders.map((order: { id: string }) => order.id));
+      } else {
       for (const item of items) {
         const res = await fetch("/api/checkout", {
           method: "POST",
@@ -93,6 +112,7 @@ export default function CheckoutPage() {
           throw new Error(d.error ?? "Order failed");
         }
       }
+      }
 
       clearCart();
       setSuccess(true);
@@ -115,6 +135,7 @@ export default function CheckoutPage() {
             <CheckCircle2 className="size-10 text-green-500" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-3">Order Placed!</h1>
+          {orderReferences.length > 0 && <p className="mb-3 break-all text-xs text-muted-foreground">Order references: {orderReferences.join(", ")}</p>}
           <p className="text-muted-foreground mb-8">
             Thank you! Your order has been placed. We&apos;ll call you on{" "}
             <strong>{form.phone}</strong> to confirm.

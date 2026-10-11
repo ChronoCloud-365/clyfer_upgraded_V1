@@ -25,6 +25,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const url =
@@ -32,22 +33,28 @@ export default function AdminOrdersPage() {
         ? "/api/admin/orders"
         : `/api/admin/orders?status=${filter}`;
     fetch(url)
-      .then((r) => r.json())
+      .then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not load orders."); return data; })
       .then((d) => setOrders(d.orders ?? []))
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not load orders."))
       .finally(() => setLoading(false));
   }, [filter]);
 
   async function updateStatus(id: string, status: OrderStatus) {
     setUpdatingId(id);
-    await fetch("/api/admin/orders", {
+    setError("");
+    try {
+    const response = await fetch("/api/admin/orders", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
     });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not update the order.");
     setOrders((prev) =>
       prev.map((o) => (o.id === id ? { ...o, status } : o))
     );
-    setUpdatingId(null);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not update the order."); }
+    finally { setUpdatingId(null); }
   }
 
   const counts = STATUS_OPTIONS.reduce(
@@ -65,6 +72,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Filter tabs */}
+      {error && <p role="alert" className="mb-4 text-sm text-red-500">{error}</p>}
       <div className="flex gap-2 mb-6 flex-wrap">
         {["all", ...STATUS_OPTIONS].map((s) => (
           <button

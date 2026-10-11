@@ -24,11 +24,11 @@ export function ProductForm({ initial = {}, productId }: Props) {
   const [slug, setSlug] = useState(initial.slug ?? "");
   const [price, setPrice] = useState(String(initial.price ?? ""));
   const [originalPrice, setOriginalPrice] = useState(String(initial.original_price ?? ""));
-  const [category, setCategory] = useState<ProductCategory>(initial.category ?? "casual");
+  const [category, setCategory] = useState<ProductCategory>(initial.category ?? DEFAULT_CATALOG.categories[0].id);
   const [subcategory, setSubcategory] = useState(initial.subcategory ?? "");
   const [description, setDescription] = useState(initial.description ?? "");
   const [images, setImages] = useState<string[]>(initial.images ?? []);
-  const [sizes, setSizes] = useState<number[]>(initial.sizes ?? []);
+  const [sizes, setSizes] = useState<number[]>((initial.sizes ?? []).filter((size): size is number => typeof size === "number"));
   const [tags, setTags] = useState((initial.tags ?? []).join(", "));
   const [isFeatured, setIsFeatured] = useState(initial.is_featured ?? false);
   const [inStock, setInStock] = useState(initial.in_stock ?? true);

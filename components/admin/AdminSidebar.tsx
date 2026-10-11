@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { label: "Featured", href: "/admin/featured", icon: Star },
   { label: "Footer", href: "/admin/footer", icon: AlignLeft },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Inventory", href: "/admin/inventory", icon: Package },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Shipping", href: "/admin/shipping", icon: Truck },
   { label: "Store Locator", href: "/admin/store-locator", icon: MapPin },
