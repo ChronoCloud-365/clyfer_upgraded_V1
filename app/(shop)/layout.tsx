@@ -14,3 +14,4 @@ export default function ShopLayout({
     </>
   );
 }
+export const dynamic = "force-dynamic";

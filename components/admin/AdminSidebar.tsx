@@ -25,12 +25,15 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { label: "Departments", href: "/admin/departments", icon: LayoutGrid },
+  { label: "Categories", href: "/admin/categories", icon: LayoutGrid },
+  { label: "Item Profiles", href: "/admin/items", icon: Package },
   { label: "Catalog", href: "/admin/catalog", icon: LayoutGrid },
   { label: "Navbar", href: "/admin/navbar", icon: Navigation },
   { label: "Hero Slider", href: "/admin/hero", icon: Image },
   { label: "Featured", href: "/admin/featured", icon: Star },
+  { label: "Featured Categories", href: "/admin/featured-categories", icon: Star },
   { label: "Footer", href: "/admin/footer", icon: AlignLeft },
-  { label: "Products", href: "/admin/products", icon: Package },
   { label: "Inventory", href: "/admin/inventory", icon: Package },
   { label: "Orders", href: "/admin/orders", icon: ShoppingCart },
   { label: "Shipping", href: "/admin/shipping", icon: Truck },
@@ -68,7 +71,7 @@ export function AdminSidebar() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const active = item.href === "/admin"
             ? pathname === "/admin"

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { cn } from "@/lib/utils";
+import { itemImage } from "@/lib/item-image";
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
@@ -78,7 +79,7 @@ export default function CheckoutPage() {
           phone: `${form.phone}${form.phone2 ? ` / ${form.phone2}` : ""}`,
           address: form.address, city: form.city, notes: form.notes, shipping_area: form.shipping_area,
           items: items.map((item) => ({ product_id: item.product.id, size: item.size,
-            color: item.color.name, quantity: item.quantity, expected_price: item.product.price })),
+            color: item.color.name, model: item.model || "", variant_id: item.variant_id, quantity: item.quantity, expected_price: item.product.price })),
         };
         const signature = JSON.stringify(payload);
         if (pendingCheckout.current?.signature !== signature) pendingCheckout.current = { signature, id: crypto.randomUUID() };
@@ -364,22 +365,22 @@ export default function CheckoutPage() {
                 </div>
                 <div className="p-6 space-y-6 max-h-[40vh] overflow-y-auto">
                   {items.map((item) => (
-                    <div key={`${item.product.id}-${item.size}-${item.color?.name ?? ""}`} className="flex gap-4">
+                    <div key={item.variant_id || `${item.product.id}-${item.size}-${item.color?.name ?? ""}-${item.model || ""}`} className="flex gap-4">
                       <div className="size-20 rounded-2xl overflow-hidden bg-muted shrink-0 border border-border">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.product.images?.[0] ?? ""} alt={item.product.name} className="w-full h-full object-cover" />
+                        <img src={itemImage(item.product.images?.[0], 160)} alt={item.product.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-foreground truncate uppercase tracking-tight">{item.product.name}</p>
                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide mt-0.5">
-                              SIZE: {item.size} · QTY: {item.quantity}{item.color?.name ? ` · ${item.color.name}` : ""}
+                              SIZE: {item.size} · QTY: {item.quantity}{item.color?.name ? ` · ${item.color.name}` : ""}{item.model ? ` · ${item.model}` : ""}
                             </p>
                           </div>
                           <button
                             type="button"
-                            onClick={() => removeItem(item.product.id, item.size, item.color?.name ?? "")}
+                            onClick={() => removeItem(item.product.id, item.size, item.color?.name ?? "", item.model, item.variant_id)}
                             className="text-muted-foreground hover:text-red-500 transition-colors"
                             aria-label={`Remove ${item.product.name}`}
                           >

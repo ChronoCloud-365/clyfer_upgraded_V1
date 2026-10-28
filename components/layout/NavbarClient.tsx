@@ -36,7 +36,14 @@ const useMounted = () =>
     () => false
   );
 
-export function NavbarClient({ config }: Props) {
+export function NavbarClient({ config: initialConfig }: Props) {
+  const [config, setConfig] = useState(initialConfig);
+  useEffect(() => {
+    const controller = new AbortController();
+    async function refresh() { try { const response = await fetch("/api/catalog", { cache: "no-store", signal: controller.signal }); if (response.ok) { const data = await response.json(); if (!controller.signal.aborted) setConfig(data.navbar); } } catch { /* Retain navigation while offline. */ } }
+    void refresh(); const timer = setInterval(() => void refresh(), 10000);
+    return () => { controller.abort(); clearInterval(timer); };
+  }, []);
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,7 +77,7 @@ export function NavbarClient({ config }: Props) {
     href === "/" ? pathname === "/" : pathname.startsWith(href.split("?")[0]);
 
   function getCategoryHref(catId: string) {
-    return `/shop?category=${catId}`;
+    return config.categories.find((category) => category.id === catId)?.href ?? `/shop?category=${catId}`;
   }
 
   function submitSearch() {
@@ -158,7 +165,9 @@ export function NavbarClient({ config }: Props) {
           "fixed inset-x-0 top-0 z-50 transition-all duration-300",
           scrolled
             ? "bg-background/80 backdrop-blur-md border-b border-border shadow-sm"
-            : "bg-transparent"
+            : "bg-transparent",
+          config.style === "bold" && "border-b-2 border-brand bg-card shadow-lg",
+          config.style === "minimal" && "bg-background border-b border-border"
         )}
         style={{ animation: "slideDown 0.5s cubic-bezier(0.22, 1, 0.36, 1) both" }}
       >
@@ -172,7 +181,7 @@ export function NavbarClient({ config }: Props) {
                 width={52}
                 height={52}
                 className="rounded-xl object-cover"
-                priority
+                preload
               />
               <motion.span
                 whileHover={{ scale: 1.03 }}
@@ -185,7 +194,7 @@ export function NavbarClient({ config }: Props) {
             </Link>
 
             {/* Desktop navigation */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:thin]">
               <NavigationMenu>
                 <NavigationMenuList>
                   {config.categories.map((cat) => (
@@ -193,6 +202,8 @@ export function NavbarClient({ config }: Props) {
                       <NavigationMenuTrigger
                         className={cn(
                           "text-sm font-medium bg-transparent hover:bg-accent/50",
+                          config.style === "bold" && "font-bold rounded-full",
+                          config.style === "minimal" && "rounded-none tracking-wide",
                           isActive(getCategoryHref(cat.id)) ? "text-foreground" : "text-muted-foreground"
                         )}
                         onClick={() => router.push(getCategoryHref(cat.id))}
@@ -200,7 +211,7 @@ export function NavbarClient({ config }: Props) {
                         {cat.label}
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
-                        <ul className="grid grid-cols-2 gap-3 p-4 w-[440px]">
+                        <ul className="grid max-h-[calc(100vh-120px)] grid-cols-2 gap-3 overflow-y-auto p-4 w-[440px]">
                           {/* View all category */}
                           <li className="col-span-2">
                             <NavigationMenuLink
@@ -225,6 +236,7 @@ export function NavbarClient({ config }: Props) {
                               </NavigationMenuLink>
                             </li>
                           ))}
+                          {cat.children?.map((child) => <li key={child.id} className="col-span-2 rounded-lg border border-border p-3"><NavigationMenuLink href={child.href} className="mb-2 block text-sm font-semibold hover:text-brand">{child.label}</NavigationMenuLink><div className="grid grid-cols-2 gap-2">{child.subcategories.map((sub) => <NavigationMenuLink key={sub.href} href={sub.href} className="rounded-md p-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">{sub.label}</NavigationMenuLink>)}</div></li>)}
                         </ul>
                       </NavigationMenuContent>
                     </NavigationMenuItem>
@@ -249,7 +261,7 @@ export function NavbarClient({ config }: Props) {
             </nav>
 
             {/* Right controls */}
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 onClick={() => {
                   setSearchTerm(searchParams.get("search") ?? "");
@@ -382,6 +394,7 @@ export function NavbarClient({ config }: Props) {
                               ))}
                             </div>
                           )}
+                          {cat.children?.map((child) => <div key={child.id} className="ml-5 mt-2"><Link href={child.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold">{child.label}</Link>{child.subcategories.map((sub) => <Link key={sub.href} href={sub.href} onClick={() => setMobileOpen(false)} className="ml-3 block px-3 py-2 text-xs text-muted-foreground">{sub.label}</Link>)}</div>)}
                         </motion.div>
                       ))}
 

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const local = readInventoryOrders(getInventoryDatabase()).filter((order) => order.phone.split(" / ").includes(phone)).map(({ id, product_name, size, color, quantity, total_price, status, created_at, notes }) => ({ id, product_name, size, color, quantity, total_price, status, created_at, notes }));
+    const local = readInventoryOrders(getInventoryDatabase()).filter((order) => order.phone.split(" / ").includes(phone)).map(({ id, product_name, size, color, model, barcode, quantity, total_price, status, created_at, notes }) => ({ id, product_name, size, color, model, barcode, quantity, total_price, status, created_at, notes }));
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return NextResponse.json({ orders: local });
     const supabase = getAdminClient();
     // Match phone even if stored as "01XXXXXXXXX / 01XXXXXXXXX" (dual phone format)

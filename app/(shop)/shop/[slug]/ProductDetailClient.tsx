@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Product, ProductSize } from "@/types";
 import { useCartStore } from "@/store/cart";
+import { itemImage } from "@/lib/item-image";
 
 interface Props {
   product: Product;
@@ -43,32 +44,36 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
 
-  const firstAvailable = initialProduct.variants?.find((variant) => variant.quantity > 0);
+  const firstAvailable = initialProduct.variants?.find((variant) => variant.quantity > 0) ?? initialProduct.variants?.[0];
   const [selectedSize, setSelectedSize] = useState<ProductSize | null>(
     firstAvailable?.size ?? product.sizes?.[0] ?? null
   );
   const [selectedColor, setSelectedColor] = useState(product.colors.find((color) => color.name.toLowerCase() === firstAvailable?.color.toLowerCase()) ?? product.colors?.[0] ?? null);
+  const [selectedModel, setSelectedModel] = useState(firstAvailable?.model ?? initialProduct.variants?.[0]?.model ?? "");
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [added, setAdded] = useState(false);
-  const variant = product.variants?.find((entry) => entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && entry.size === String(selectedSize));
-  const available = inventoryManaged ? variant?.quantity ?? 0 : product.in_stock ? 1000 : 0;
+  const variant = product.variants?.find((entry) => entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && entry.size === String(selectedSize) && entry.model.toLowerCase() === selectedModel.toLowerCase());
+  const balance = variant?.quantity ?? 0;
+  const available = product.allow_negative_stock && variant ? 1000 : inventoryManaged ? Math.max(0, balance) : product.in_stock ? 1000 : 0;
   const canBuy = !stockUnavailable && available >= quantity && selectedSize !== null;
+  const price = variant?.price ?? product.price;
+  const originalPrice = variant?.original_price ?? product.original_price;
 
-  const discount = product.original_price
-    ? Math.round((1 - product.price / product.original_price) * 100)
+  const discount = originalPrice
+    ? Math.round((1 - price / originalPrice) * 100)
     : null;
 
   function handleAddToCart() {
     if (!selectedSize) { toast.error("Please select a size"); return false; }
-    const existing = useCartStore.getState().items.find((item) => item.product.id === product.id && String(item.size) === String(selectedSize) && item.color.name.toLowerCase() === selectedColor?.name.toLowerCase());
+    const existing = useCartStore.getState().items.find((item) => item.product.id === product.id && (variant && item.variant_id ? item.variant_id === variant.id : String(item.size) === String(selectedSize) && item.color.name.toLowerCase() === selectedColor?.name.toLowerCase() && (item.model || "") === selectedModel));
     if (!canBuy || quantity + (existing?.quantity ?? 0) > available) { toast.error(`Only ${available} units are available for this color and size, including any already in your cart.`); return false; }
     // Call addItem qty times or just once + handle qty via store
     for (let i = 0; i < quantity; i++) {
       addItem(
         product,
         selectedSize,
-        selectedColor ?? { name: "Default", hex: "#000" }
+        selectedColor ?? { name: "Default", hex: "#000" }, selectedModel, variant?.id
       );
     }
     setAdded(true);
@@ -100,7 +105,7 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
                 key={activeImage}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                src={product.images?.[activeImage] ?? ""}
+                src={itemImage(product.images?.[activeImage], 960)}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
@@ -121,7 +126,7 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img src={itemImage(img, 160)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -142,11 +147,11 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-bold text-foreground">
-                ৳{product.price.toLocaleString()}
+                ৳{price.toLocaleString()}
               </span>
-              {product.original_price && (
+              {originalPrice && (
                 <span className="text-lg text-muted-foreground line-through">
-                  ৳{product.original_price.toLocaleString()}
+                  ৳{originalPrice.toLocaleString()}
                 </span>
               )}
               {discount && (
@@ -159,7 +164,7 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
             <p className="text-muted-foreground leading-relaxed">{product.description}</p>
 
             {/* Colors */}
-            {product.colors.length > 0 && (
+            {product.colors.length > 0 && (!inventoryManaged || product.attributes?.includes("Color")) && (
               <div>
                 <p className="text-sm font-medium text-foreground mb-3">
                   Color: <span className="text-muted-foreground">{selectedColor?.name}</span>
@@ -168,7 +173,7 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
                   {product.colors.map((color) => (
                     <button
                       key={color.name}
-                      onClick={() => { setSelectedColor(color); setQuantity(1); }}
+                      onClick={() => { setSelectedColor(color); setQuantity(1); const next = product.variants?.find((entry) => entry.color.toLowerCase() === color.name.toLowerCase() && entry.size === String(selectedSize) && entry.model === selectedModel) ?? product.variants?.find((entry) => entry.color.toLowerCase() === color.name.toLowerCase() && (entry.quantity > 0 || product.allow_negative_stock)) ?? product.variants?.find((entry) => entry.color.toLowerCase() === color.name.toLowerCase()); if (next) { setSelectedSize(next.size); setSelectedModel(next.model); } }}
                       title={color.name}
                       className={`min-h-9 rounded-full border-2 px-3 text-xs transition-all ${
                         selectedColor?.name === color.name
@@ -182,7 +187,7 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
             )}
 
             {/* Sizes */}
-            {product.sizes.length > 0 && (
+            {product.sizes.length > 0 && (!inventoryManaged || product.attributes?.includes("Size")) && (
               <div>
                 <p className="text-sm font-medium text-foreground mb-3">
                   Size: <span className="text-muted-foreground">{selectedSize ?? "Select a size"}</span>
@@ -191,8 +196,8 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
                   {product.sizes.map((size) => (
                     <button
                       key={size}
-                      onClick={() => { setSelectedSize(size); setQuantity(1); }}
-                      disabled={Boolean(inventoryManaged && !product.variants?.some((entry) => entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && entry.size === String(size) && entry.quantity > 0))}
+                      onClick={() => { setSelectedSize(size); setQuantity(1); const candidates = product.variants?.filter((entry) => entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && entry.size === String(size) && (entry.quantity > 0 || product.allow_negative_stock)); const next = candidates?.find((entry) => entry.model === selectedModel) ?? candidates?.[0]; if (next) setSelectedModel(next.model); }}
+                      disabled={Boolean(inventoryManaged && !product.variants?.some((entry) => entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && entry.size === String(size) && (entry.quantity > 0 || product.allow_negative_stock)))}
                       className={`min-w-[44px] h-10 px-3 rounded-xl text-sm font-medium transition-all border disabled:opacity-40 disabled:cursor-not-allowed ${
                         selectedSize === size
                           ? "border-transparent text-zinc-900"
@@ -211,7 +216,8 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
               </div>
             )}
 
-            {inventoryManaged && <div className="rounded-xl border border-border p-4 text-sm"><p className="font-semibold">Live stock by color and size</p><div className="mt-2 flex flex-wrap gap-2">{product.variants?.map((entry) => <span key={entry.id} className="rounded-lg bg-muted px-2 py-1 text-xs">{entry.color} / {entry.size}: {entry.quantity} available</span>)}</div><p className="mt-2 text-muted-foreground" role="status">{stockUnavailable ? "Stock updates unavailable. Please refresh before ordering." : available ? `${available} units available for your selection.` : "This color and size is out of stock."}</p></div>}
+            {product.attributes?.includes("Model") && <div><p className="mb-3 text-sm font-medium">Model: {selectedModel}</p><div className="flex flex-wrap gap-2">{[...new Set(product.variants?.map((entry) => entry.model).filter(Boolean))].map((model) => <button key={model} disabled={!product.variants?.some((entry) => entry.model === model && entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && (entry.quantity > 0 || product.allow_negative_stock))} onClick={() => { setSelectedModel(model); setQuantity(1); const candidates = product.variants?.filter((entry) => entry.model === model && entry.color.toLowerCase() === selectedColor?.name.toLowerCase() && (entry.quantity > 0 || product.allow_negative_stock)); const next = candidates?.find((entry) => entry.size === String(selectedSize)) ?? candidates?.[0]; if (next) setSelectedSize(next.size); }} className={`rounded-xl border px-3 py-2 text-sm disabled:opacity-40 ${selectedModel === model ? "border-brand bg-brand/10" : "border-border"}`}>{model}</button>)}</div></div>}
+            {inventoryManaged && <div className="rounded-xl border border-border p-4 text-sm"><p className="font-semibold">Live stock by variant</p><div className="mt-2 flex flex-wrap gap-2">{product.variants?.map((entry) => <span key={entry.id} className="rounded-lg bg-muted px-2 py-1 text-xs">{[entry.color !== "Default" && entry.color, entry.size !== "One Size" && entry.size, entry.model].filter(Boolean).join(" / ") || "Standard"}: {entry.quantity} in stock</span>)}</div><p className="mt-2 text-muted-foreground" role="status">{stockUnavailable ? "Stock updates unavailable. Please refresh before ordering." : product.allow_negative_stock && variant ? `Available to order · Current stock: ${balance}` : available ? `${available} units available for your selection.` : "This variant is out of stock."}</p>{variant && <p className="mt-1 text-xs text-muted-foreground">Item: {variant.name} · Code: {variant.barcode}</p>}</div>}
 
             {/* Quantity */}
             <div>
@@ -263,7 +269,7 @@ export function ProductDetailClient({ product: initialProduct }: Props) {
                 }}
               >
                 <CreditCard className="size-4" />
-                Buy Now · ৳{(product.price * quantity).toLocaleString()}
+                Buy Now · ৳{(price * quantity).toLocaleString()}
               </button>
             </div>
 

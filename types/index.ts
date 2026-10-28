@@ -22,7 +22,10 @@ export interface Product {
   subcategory?: string;
   sizes: ProductSize[];
   inventory_managed?: boolean;
-  variants?: { id: string; color: string; size: string; quantity: number }[];
+  allow_negative_stock?: boolean;
+  attributes?: ("Color" | "Size" | "Model")[];
+  department?: string | null;
+  variants?: { id: string; color: string; size: string; model: string; quantity: number; name: string; barcode: string; price: number; original_price?: number }[];
   colors: ProductColor[];
   tags: string[];
   rating: number;
@@ -52,6 +55,8 @@ export interface Order {
   product_name: string;
   size?: ProductSize;
   color?: string;
+  model?: string;
+  barcode?: string;
   quantity: number;
   total_price: number;
   status: OrderStatus;
@@ -66,6 +71,8 @@ export interface CartItem {
   quantity: number;
   size: ProductSize;
   color: ProductColor;
+  model?: string;
+  variant_id?: string;
 }
 
 // ── Site Config types ────────────────────────────────────────────
@@ -81,6 +88,7 @@ export interface NavCategory {
   label: string;
   href: string;
   subcategories: NavSubcategory[];
+  children?: NavCategory[];
 }
 
 export interface NavLink {
@@ -91,11 +99,13 @@ export interface NavLink {
 export interface NavbarConfig {
   categories: NavCategory[];
   links: NavLink[];
+  style?: "classic" | "minimal" | "bold";
 }
 
 export interface NavbarSettings {
   categoryIds: string[];
   links: NavLink[];
+  style?: "classic" | "minimal" | "bold";
 }
 
 export interface CatalogSubcategory {
@@ -111,10 +121,12 @@ export interface CatalogCategory {
   href: string;
   description?: string;
   subcategories: CatalogSubcategory[];
+  departmentId?: string | null;
 }
 
 export interface CatalogConfig {
   categories: CatalogCategory[];
+  departments?: { id: string; name: string; slug: string }[];
 }
 
 export interface HeroSlide {
@@ -127,6 +139,7 @@ export interface HeroSlide {
   ctaSecondary: { label: string; href: string };
   imageUrl: string;
   stats: { value: string; label: string }[];
+  design?: "cinematic" | "split" | "minimal";
 }
 
 export interface HeroConfig {
@@ -216,4 +229,5 @@ export type SiteConfigKey =
   | "terms"
   | "privacy"
   | "cookies"
-  | "store_locator";
+  | "store_locator"
+  | "featured_categories";

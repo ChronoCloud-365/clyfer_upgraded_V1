@@ -55,12 +55,12 @@ export default async function AdminDashboard() {
 
   const statCards = [
     {
-      label: "Total Products",
+      label: "Item Profiles",
       value: stats.totalProducts,
       icon: Package,
       color: "text-blue-400",
       bg: "bg-blue-500/10 border-blue-500/20",
-      href: "/admin/products",
+      href: "/admin/items",
     },
     {
       label: "Total Orders",
@@ -93,7 +93,7 @@ export default async function AdminDashboard() {
     { label: "Edit Navbar", desc: "Manage categories & links", href: "/admin/navbar", icon: Navigation },
     { label: "Edit Hero", desc: "Slider images & text", href: "/admin/hero", icon: Image },
     { label: "Edit Footer", desc: "Links, social & tagline", href: "/admin/footer", icon: AlignLeft },
-    { label: "Add Product", desc: "New product listing", href: "/admin/products/new", icon: Package },
+    { label: "Create Item Profile", desc: "Prices, images and child variants", href: "/admin/items", icon: Package },
     { label: "Store Locator", desc: "Map URL & address", href: "/admin/store-locator", icon: MapPin },
   ];
 

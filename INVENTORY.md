@@ -1,35 +1,52 @@
-# Inventory module
+# Ecommerce administration
 
-Open `/admin/inventory` after signing into the admin panel.
+Sign in at `/admin/login`. The setup workflow is:
 
-1. Create an item profile with a unique SKU, category, subcategory, unit purchase cost, selling price, description, photos and low-stock threshold.
-2. Add each color and size combination and its opening quantity. Sizes are labels, so footwear numbers, belt sizes and `One Size` are supported.
-3. Use **Update stock** to receive units, issue units for sales/damage, or record a physical count. A reason/reference is required.
-4. Review stock and the latest 200 movements. Item totals are calculated from their variants.
-5. Enable **Publish on website** to show the item in the shop. **View on website** opens its product page. Photos can be provided as HTTP/HTTPS URLs; an item without photos uses a placeholder.
+1. **Departments** (`/admin/departments`): optionally create departments.
+2. **Categories** (`/admin/categories`): create categories and subcategories, assign departments, and configure item-code prefixes. The reference footwear/accessory categories are preloaded on migration.
+3. **Item Profiles** (`/admin/items`): create the parent name, initial purchase cost, initial selling price, description and up to five images. Selling price initially copies purchase cost and can be changed.
+4. **Generate variants**: choose any of Color, Size and Model, select/add values, and generate their combinations. With no attributes, the item gets a standard child. The maximum is 500 children per item. Preview rows can be removed before saving. Each row has a name, purchase/selling rate, child barcode and reorder level. Saved children retain their identity and stock history.
+5. **Inventory** (`/admin/inventory`): receive, issue or physically count quantities for each child. A reason/reference is required. Item profiles and newly generated children start at zero stock.
+6. **Catalog** (`/admin/catalog`): select profiles for the website, mark featured items and configure percentage offers with optional start/end dates. Only selected item profiles appear in the storefront.
 
-The dashboard calculates **inventory cost = quantity × current profile purchase cost** and **selling value = quantity × current selling price**. Values are calculated in integer cents. Changing a profile's purchase cost recalculates the value of its remaining stock; every order preserves the unit cost and selling price at the time it was placed.
+## Codes and identities
 
-Published items display their selling price and availability for each color/size combination. The shop, product page and admin inventory refresh inventory every 10 seconds and when the browser window receives focus. Checkout always rechecks the current price and exact stock before accepting an order. Purchase cost is only exposed through the authenticated admin inventory API.
+The subcategory's configurable prefix plus five digits forms the automatic parent code, for example `CAL00001`. A sequence is shared by records using the same prefix, and existing manual codes are skipped. A manually entered parent code is also supported.
 
-The seven agreed categories and their subcategories are in `lib/inventory/model.ts`. Selecting a category limits the available subcategories. Item identity is its SKU; stock identity is item + color + size. Names and SKU can be edited without losing movement history.
+Default child barcodes use `parent-code-001`, `parent-code-002`, etc. Custom child barcodes are checked for uniqueness. Children are linked to the parent by its internal ID. The parent code cannot change after children have been saved. Classification names and assignments can be updated without changing existing codes. Category and department URL slugs stay stable when labels are renamed.
 
-## Storage and deployment
+Stock identity is **item + color + size + model**. Variant names default to parent name + color + model + size. Child rates and reorder levels are copied from the profile when generated; use **Apply initial prices / reorder level to all** to update every row deliberately.
 
-This module uses Node's built-in SQLite database and requires Node **22.13 or later**. The current development environment uses Node 24. No additional database package is required.
+## Stock, values and checkout
 
-The database is created automatically at `.data/inventory.sqlite`. It is excluded from Git. To move it, set `INVENTORY_DB_PATH` to an absolute file path in `.env.local` and restart the server. All quantities and movement records persist across server restarts.
+Inventory cost is the sum of each child balance multiplied by its purchase rate. Selling value uses its selling rate. Balances can be negative when the parent profile explicitly permits negative sales; otherwise manual issues and checkout cannot oversell. Negative balances must be reconciled before disabling that permission. Values use integer cents and signed net stock balances.
 
-Admin sessions now use signed cookies with a seven-day expiry. A random `ADMIN_SESSION_SECRET` is configured locally; configure a private secret on deployment as well. Existing fixed-value cookies are invalidated, so sign in again after updating.
+Checkout rechecks the selected child and its current offer-adjusted price. Orders, every stock deduction and the audit movements commit in one transaction. Failed carts roll back completely. Unique checkout/request IDs prevent duplicate changes when requests are retried. Delivery is calculated on the server and charged once across the cart. Order lines preserve child identity, model, barcode and unit price/cost snapshots.
 
-Stock writes and audit records commit in one transaction. Negative stock, duplicate SKUs, duplicate variants and invalid category relationships are rejected. Physical counts use the balance seen when the form opened to detect conflicting updates. Stock requests carry unique request IDs so a retry cannot apply the same movement twice.
+Order flow is pending → confirmed → shipped → delivered. Cancelling a pending or confirmed order restores its stock once. Shipped/delivered returns are recorded as separate receipt movements after goods return. Orders and Shipping are separate admin menus.
 
-Checkout for inventory profiles writes orders, deducts every selected variant and records stock movements in one database transaction. If any cart line is unavailable, the entire checkout rolls back. A unique checkout reference prevents duplicate orders when the same request is retried. Delivery is calculated on the server and applied once across the cart.
+The shop, product detail, navigation and inventory refresh relevant data every ten seconds. Purchase rates remain private to admin/database records.
 
-Orders appear in `/admin/orders` and the customer tracking page. The order flow is pending → confirmed → shipped → delivered. Cancelling a pending or confirmed order restores its quantities exactly once. Shipped and delivered orders require a separate stock-return movement when goods actually return.
+## Website configuration
 
-Existing Supabase product and order records remain supported. Inventory profiles and their orders currently use the local SQLite database; an ERP connection is still to be configured. If a cart contains both legacy Supabase products and inventory profiles, the customer must check out the two groups separately because they use different databases.
+- Navigation is generated from the live taxonomy. Assigned categories appear under their department; independent categories appear at the top level. The Navbar editor changes appearance only (classic, minimal, bold).
+- Featured Categories allows at most three home-page categories. Catalog featured items and the existing configurable featured sections are both supported.
+- Hero slides retain images, badges, text, calls to action, statistics and carousel controls, with original cinematic, image-first split and minimal framed layouts.
+- Footer, Store Locator and Legal editors retain their existing fields and functionality.
+- Settings now persist locally alongside inventory, so CMS editing works without Supabase credentials. Existing Supabase CMS values remain a read fallback until a setting is saved locally. Supabase customer authentication and existing remote orders retain their existing integration.
 
-For local development or a single server, use a persistent writable disk and back up SQLite with its backup tooling. For a serverless or multi-instance deployment, connect the ERP database or migrate this storage layer to a shared database first; ephemeral hosting disks do not preserve this file.
+## Images
 
-Run backend checks with `npm run test:inventory`.
+Upload still JPG, PNG, WebP or AVIF files through the item-profile form. The server enforces **five images per profile** and **1 MiB (1,048,576 bytes) per uploaded file**, validates actual image content, and converts accepted files to WebP with a maximum 1600-pixel dimension. Cards and previews request smaller 160/480/960-pixel derivatives, with immutable caching. Existing profile image URLs remain readable for compatibility.
+
+## Persistence and deployment
+
+Use Node **22.13 or later** (development uses Node 24). SQLite lives at `.data/inventory.sqlite`; uploaded media lives at `.data/item-images`. Both are excluded from Git. `INVENTORY_DB_PATH` and `INVENTORY_MEDIA_PATH` can configure absolute paths on persistent storage. Keep both outside deployment release directories and back them up. A local database backup was created under `.data/backups` during this update.
+
+Schema upgrades preserve existing item IDs, variant IDs, stock balances, orders and movement references. Existing color/size stock is upgraded with child names, model fields, prices and barcodes.
+
+Admin cookies are signed using `ADMIN_SESSION_SECRET`, with a seven-day expiry. Configure the production secret and admin password in environment settings.
+
+For serverless or multiple application instances, connect a shared ERP/database and shared media storage before deployment. The current implementation runs on one persistent server. Legacy Supabase product records are preserved in that database; storefront publication is now controlled by item profiles and Catalog.
+
+Validation: `npm run test:inventory`, TypeScript, ESLint and `npm run build`. Backend tests cover migration, codes, variants, images, pricing, orders, offers, negative stock, retries and cancellation.

@@ -31,6 +31,7 @@ function makeDefaultSlide(): HeroSlide {
 }
 
 type FieldPath =
+  | "design"
   | "badge"
   | "title"
   | "titleHighlight"
@@ -221,6 +222,8 @@ export default function AdminHeroPage() {
                   {/* Text content */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
+                      <label className="admin-label">Slide design</label>
+                      <select className="admin-input" value={slide.design ?? "cinematic"} onChange={(e) => updateSlide(slide.id, "design", e.target.value)}><option value="cinematic">Original cinematic</option><option value="split">Image-first split</option><option value="minimal">Minimal framed</option></select>
                       <label className="admin-label">Badge Text</label>
                       <input
                         value={slide.badge ?? ""}

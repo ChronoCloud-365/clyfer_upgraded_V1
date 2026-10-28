@@ -1,19 +1,16 @@
 import { createClient } from "./supabase/server";
-import { INVENTORY_CATEGORIES, categoryId } from "./inventory/model";
+import { getInventoryDatabase } from "./inventory/database";
+import { dynamicCatalog } from "./inventory/taxonomy";
 import {
-  DEFAULT_NAVBAR,
-  DEFAULT_NAVBAR_SETTINGS,
   DEFAULT_HERO,
   DEFAULT_FOOTER,
   DEFAULT_SHIPPING,
   DEFAULT_FEATURED,
   DEFAULT_LEGAL,
-  DEFAULT_CATALOG,
   DEFAULT_STORE_LOCATOR,
 } from "./config-defaults";
 import type {
   NavbarConfig,
-  NavbarSettings,
   HeroConfig,
   FooterConfig,
   ShippingConfig,
@@ -28,6 +25,8 @@ import type {
  * SERVER-ONLY site configuration fetching
  */
 export async function getSiteConfig<T>(key: SiteConfigKey, defaultValue: T): Promise<T> {
+  const local = getInventoryDatabase().prepare("SELECT value FROM local_site_settings WHERE key=?").get(key);
+  if (local) return JSON.parse(String(local.value)) as T;
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -45,59 +44,14 @@ export async function getSiteConfig<T>(key: SiteConfigKey, defaultValue: T): Pro
 }
 
 export async function getNavbarConfig(): Promise<NavbarConfig> {
-  const [rawNavbarSettings, rawCatalog] = await Promise.all([
-    getSiteConfig<NavbarSettings>("navbar", DEFAULT_NAVBAR_SETTINGS),
-    getCatalogConfig(),
-  ]);
-
-  const catalog = {
-    categories: Array.isArray(rawCatalog?.categories) ? rawCatalog.categories : [],
-  };
-
-  const navbarSettings: NavbarSettings = {
-    categoryIds: Array.isArray(rawNavbarSettings?.categoryIds)
-      ? rawNavbarSettings.categoryIds.filter((id): id is string => typeof id === "string")
-      : [],
-    links: Array.isArray(rawNavbarSettings?.links)
-      ? rawNavbarSettings.links.filter(
-          (link): link is NavbarSettings["links"][number] =>
-            Boolean(link) &&
-            typeof link.label === "string" &&
-            typeof link.href === "string"
-        )
-      : [],
-  };
-
-  const resolvedCategories =
-    navbarSettings.categoryIds.length > 0
-      ? navbarSettings.categoryIds
-          .map((id) => catalog.categories.find((category) => category.id === id))
-          .filter(Boolean)
-          .map((category) => ({
-            id: category!.id,
-            label: category!.label,
-            href: `/shop?category=${category!.id}`,
-            subcategories: category!.subcategories.map((sub) => ({
-              label: sub.label,
-              href: `/shop?category=${category!.id}&subcategory=${sub.id}`,
-              desc: sub.desc,
-            })),
-          }))
-      : catalog.categories.map((category) => ({
-          id: category.id,
-          label: category.label,
-          href: `/shop?category=${category.id}`,
-          subcategories: category.subcategories.map((sub) => ({
-            label: sub.label,
-            href: `/shop?category=${category.id}&subcategory=${sub.id}`,
-            desc: sub.desc,
-          })),
-        }));
-
-  return {
-    categories: resolvedCategories.length ? resolvedCategories : DEFAULT_NAVBAR.categories,
-    links: navbarSettings.links,
-  };
+  const [catalog, appearance] = await Promise.all([getCatalogConfig(), getSiteConfig<{ style?: NavbarConfig["style"] }>("navbar", { style: "classic" })]);
+  const categories = catalog.categories.map((category) => ({ id: category.id, label: category.label, href: category.href,
+    subcategories: category.subcategories.map((sub) => ({ label: sub.label, href: sub.href, desc: sub.desc })) }));
+  const departments = (catalog.departments ?? []).filter((department) => catalog.categories.some((category) => category.departmentId === department.slug)).map((department) => ({
+    id: `department-${department.id}`, label: department.name, href: `/shop?department=${department.slug}`, subcategories: [],
+    children: categories.filter((_, index) => catalog.categories[index].departmentId === department.slug),
+  }));
+  return { style: appearance.style ?? "classic", categories: [...departments, ...categories.filter((_, index) => !catalog.categories[index].departmentId)], links: [] };
 }
 
 export async function getHeroConfig(): Promise<HeroConfig> {
@@ -138,12 +92,5 @@ export async function getStoreLocatorConfig(): Promise<StoreLocatorConfig> {
 }
 
 export async function getCatalogConfig(): Promise<CatalogConfig> {
-  const config = await getSiteConfig<CatalogConfig>("catalog", DEFAULT_CATALOG);
-  const existing = Array.isArray(config?.categories) ? config.categories : DEFAULT_CATALOG.categories;
-  const inventory = INVENTORY_CATEGORIES.map((entry) => ({
-    id: categoryId(entry.name), label: entry.name, href: `/shop?category=${categoryId(entry.name)}`,
-    subcategories: entry.subcategories.map((name) => ({ id: categoryId(name), label: name,
-      href: `/shop?category=${categoryId(entry.name)}&subcategory=${categoryId(name)}`, desc: "" })),
-  }));
-  return { categories: [...inventory, ...existing.filter((entry) => !inventory.some((category) => category.id === entry.id))] };
+  return dynamicCatalog(getInventoryDatabase());
 }

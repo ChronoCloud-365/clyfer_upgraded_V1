@@ -4,6 +4,8 @@ import { requireAdminSession } from "@/lib/admin-auth";
 import { getAdminClient } from "@/lib/supabase/admin";
 import { catalogConfigSchema, productWriteSchema } from "@/lib/config-schemas";
 import { DEFAULT_CATALOG } from "@/lib/config-defaults";
+import { getInventoryDatabase, readInventory } from "@/lib/inventory/database";
+import { inventoryProducts } from "@/lib/inventory/products";
 
 async function getCatalogIds() {
   const supabase = getAdminClient();
@@ -39,20 +41,9 @@ export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams.get("search");
   const featured = request.nextUrl.searchParams.get("featured");
 
-  try {
-    const supabase = getAdminClient();
-    let query = supabase.from("products").select("*");
-    if (category && category !== "all") query = query.eq("category", category);
-    if (featured === "true") query = query.eq("is_featured", true);
-    if (search) query = query.ilike("name", `%${search}%`);
-
-    const { data, error } = await query.order("created_at", { ascending: false });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ products: data ?? [] });
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
+  const state = readInventory(getInventoryDatabase());
+  return NextResponse.json({ products: inventoryProducts(state.items, state.variants, true).filter((product) =>
+    (!category || category === "all" || product.category === category) && (!search || product.name.toLowerCase().includes(search.toLowerCase())) && (featured !== "true" || product.is_featured)) });
 }
 
 export async function POST(request: NextRequest) {

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import type { Product, CatalogCategory } from "@/types";
 import { useLiveProducts } from "@/lib/use-live-products";
+import { itemImage } from "@/lib/item-image";
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
@@ -17,11 +18,12 @@ const SORT_OPTIONS = [
 
 interface Props {
   initialProducts: Product[];
-  params: { category?: string; subcategory?: string; search?: string; filter?: string };
+  params: { category?: string; subcategory?: string; department?: string; search?: string; filter?: string };
   categories: CatalogCategory[];
+  departments?: { id: string; name: string; slug: string }[];
 }
 
-export function ShopClient({ initialProducts, params, categories }: Props) {
+export function ShopClient({ initialProducts, params, categories, departments = [] }: Props) {
   const liveProducts = useLiveProducts(initialProducts, params);
   const router = useRouter();
   const pathname = usePathname();
@@ -34,13 +36,14 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
   const visibleCategories = useMemo(
     () => [
       { label: "All", value: "all", href: "/shop" },
-      ...categories.map((category) => ({
+      ...(!params.department ? departments.filter((department) => categories.some((category) => category.departmentId === department.slug)).map((department) => ({ label: department.name, value: `department:${department.slug}`, href: `/shop?department=${department.slug}` })) : []),
+      ...categories.filter((category) => params.department ? category.departmentId === params.department : !category.departmentId).map((category) => ({
         label: category.label,
         value: category.id,
         href: category.href,
       })),
     ],
-    [categories]
+    [categories, departments, params.department]
   );
 
   const activeSubcategories = useMemo(() => {
@@ -131,6 +134,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          {departments.length > 0 && <select aria-label="Department" className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm" value={params.department ?? ""} onChange={(e) => { const query = new URLSearchParams(searchParams.toString()); if (e.target.value) query.set("department", e.target.value); else query.delete("department"); query.delete("category"); query.delete("subcategory"); router.replace(`${pathname}?${query}`); }}><option value="">All departments</option>{departments.map((department) => <option key={department.id} value={department.slug}>{department.name}</option>)}</select>}
           <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <input
@@ -158,7 +162,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
           {visibleCategories.map((category) => (
             <button
               key={category.value}
-              onClick={() => handleCategoryClick(category.value)}
+              onClick={() => { if (category.value.startsWith("department:")) router.replace(category.href); else handleCategoryClick(category.value); }}
               className={`whitespace-nowrap px-5 py-2 rounded-xl text-sm font-medium transition-all border ${
                 activeCategory === category.value
                   ? "border-transparent text-zinc-900 dark:text-zinc-900"
@@ -216,7 +220,7 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
                     <div className="relative overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800 aspect-square mb-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={product.images?.[0] ?? ""}
+                        src={itemImage(product.images?.[0], 480)}
                         alt={product.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
@@ -231,9 +235,9 @@ export function ShopClient({ initialProducts, params, categories }: Props) {
                       <h3 className="font-semibold text-sm text-foreground group-hover:text-brand transition-colors mt-0.5 truncate">
                         {product.name}
                       </h3>
-                      {product.inventory_managed && <p className="mt-1 text-xs text-muted-foreground">{product.in_stock ? `${product.variants?.reduce((sum, variant) => sum + variant.quantity, 0)} units available · Choose color / size` : "Out of stock"}</p>}
+                      {product.inventory_managed && <p className="mt-1 text-xs text-muted-foreground">{product.allow_negative_stock ? "Available to order · Choose variant" : product.in_stock ? `${product.variants?.reduce((sum, variant) => sum + Math.max(0, variant.quantity), 0)} units available · Choose variant` : "Out of stock"}</p>}
                       <div className="flex items-baseline gap-2 mt-1">
-                        <span className="font-bold text-foreground">৳{product.price.toLocaleString()}</span>
+                        <span className="font-bold text-foreground">{product.inventory_managed && new Set(product.variants?.map((variant) => variant.price)).size > 1 ? "From " : ""}৳{product.price.toLocaleString()}</span>
                         {product.original_price && (
                           <span className="text-xs text-muted-foreground line-through">
                             ৳{product.original_price.toLocaleString()}

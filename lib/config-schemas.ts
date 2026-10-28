@@ -6,9 +6,9 @@ export const navLinkSchema = z.object({
 });
 
 export const navbarSettingsSchema = z.object({
-  categoryIds: z.array(z.string().trim().min(1)),
-  links: z.array(navLinkSchema),
+  style: z.enum(["classic", "minimal", "bold"]).default("classic"),
 });
+export const featuredCategoriesSchema = z.object({ categoryIds: z.array(z.string().trim().min(1)).max(3).refine((ids) => new Set(ids).size === ids.length, "Select unique categories.") });
 
 export const catalogSubcategorySchema = z.object({
   id: z.string().trim().min(1),
@@ -103,6 +103,7 @@ export const heroConfigSchema = z.object({
     z.object({
       id: z.string().trim().min(1),
       badge: z.string().trim().optional(),
+      design: z.enum(["cinematic", "split", "minimal"]).default("cinematic"),
       title: z.string().trim().min(1),
       titleHighlight: z.string().trim().min(1),
       subtitle: z.string().trim().min(1),

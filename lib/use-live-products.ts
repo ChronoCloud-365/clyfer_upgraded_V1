@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Product } from "@/types";
 
-export function useLiveProducts(initial: Product[], filters?: { category?: string; subcategory?: string; search?: string }) {
+export function useLiveProducts(initial: Product[], filters?: { category?: string; subcategory?: string; department?: string; search?: string }) {
   const [live, setLive] = useState<Product[] | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -23,6 +23,7 @@ export function useLiveProducts(initial: Product[], filters?: { category?: strin
   const inventory = (live ?? initial.filter((product) => product.inventory_managed)).filter((product) =>
     (!filters?.category || filters.category === "all" || product.category === filters.category)
     && (!filters?.subcategory || product.subcategory === filters.subcategory)
+    && (!filters?.department || product.department === filters.department)
     && (!filters?.search || product.name.toLowerCase().includes(filters.search.toLowerCase())));
   return [...initial.filter((product) => !product.inventory_managed), ...inventory];
 }

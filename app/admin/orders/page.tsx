@@ -144,6 +144,7 @@ export default function AdminOrdersPage() {
                     <p className="text-xs text-muted-foreground">
                       {order.size && `Size: ${order.size}`}
                       {order.color && ` · ${order.color}`}
+                      {order.model && ` · ${order.model}`}
                       {` · Qty: ${order.quantity}`}
                     </p>
                   </td>

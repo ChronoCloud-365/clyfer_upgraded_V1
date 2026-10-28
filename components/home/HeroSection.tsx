@@ -51,13 +51,13 @@ export function HeroSlider({ slides }: Props) {
               className="embla__slide min-w-full relative"
             >
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 lg:py-36">
-                <div className="grid lg:grid-cols-2 gap-16 items-center min-h-[70vh]">
+                <div className={`grid items-center ${slide.design === "minimal" ? "lg:grid-cols-[1.3fr_0.7fr] gap-8 min-h-[50vh]" : "lg:grid-cols-2 gap-16 min-h-[70vh]"}`}>
                   {/* Text side */}
                   <motion.div
                     initial={{ opacity: 0, x: -40 }}
                     animate={i === current ? { opacity: 1, x: 0 } : { opacity: 0, x: -40 }}
                     transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                    className="space-y-8"
+                    className={`space-y-8 ${slide.design === "split" ? "lg:order-2" : ""} ${slide.design === "minimal" ? "rounded-3xl border border-border bg-card/80 p-8" : ""}`}
                   >
                     {/* Badges */}
                     <div className="flex flex-wrap gap-2">
@@ -155,7 +155,7 @@ export function HeroSlider({ slides }: Props) {
                     initial={{ opacity: 0, x: 40, scale: 0.95 }}
                     animate={i === current ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0 }}
                     transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-                    className="relative flex items-center justify-center"
+                    className={`relative flex items-center justify-center ${slide.design === "split" ? "lg:order-1" : ""} ${slide.design === "minimal" ? "opacity-90" : ""}`}
                   >
                     <div className="relative">
                       {/* Glow */}

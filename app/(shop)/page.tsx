@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getHeroConfig, getFeaturedConfig, getCatalogConfig } from "@/lib/site-config-server";
+import { getHeroConfig, getFeaturedConfig, getCatalogConfig, getSiteConfig } from "@/lib/site-config-server";
+import { FeaturedCategories } from "@/components/home/FeaturedCategories";
 import { getAllProducts } from "@/lib/products";
 import { HeroSlider } from "@/components/home/HeroSection";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
@@ -15,16 +16,19 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [heroConfig, featuredConfig, allProducts, catalog] = await Promise.all([
+  const [heroConfig, featuredConfig, allProducts, catalog, featuredCategories] = await Promise.all([
     getHeroConfig(),
     getFeaturedConfig(),
     getAllProducts(),
     getCatalogConfig(),
+    getSiteConfig<{ categoryIds: string[] }>("featured_categories", { categoryIds: [] }),
   ]);
 
   return (
     <main>
       <HeroSlider slides={heroConfig.slides} />
+      <FeaturedCategories ids={featuredCategories.categoryIds} catalog={catalog} products={allProducts} />
+      {allProducts.some((product) => product.is_featured) && <FeaturedProducts section={{ id: "catalog-featured", title: "Featured items", subtitle: "Selected from our collection", productIds: [] }} products={allProducts.filter((product) => product.is_featured)} />}
 
       {featuredConfig.sections?.map((section: FeaturedSectionConfig) => {
         const sectionProducts = allProducts.filter((product: Product) =>
@@ -39,7 +43,7 @@ export default async function HomePage() {
         );
       })}
 
-      <AllProductsSection products={allProducts} categories={catalog.categories} />
+      <AllProductsSection products={allProducts} categories={catalog.categories} departments={catalog.departments} />
     </main>
   );
 }

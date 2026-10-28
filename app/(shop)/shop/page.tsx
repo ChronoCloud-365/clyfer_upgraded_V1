@@ -14,13 +14,14 @@ export const metadata: Metadata = {
 export default async function ShopPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; subcategory?: string; search?: string; filter?: string }>;
+  searchParams: Promise<{ category?: string; subcategory?: string; department?: string; search?: string; filter?: string }>;
 }) {
   const params = await searchParams;
   const [products, catalog] = await Promise.all([
     getAllProducts({
       category: params.category,
       subcategory: params.subcategory,
+      department: params.department,
       search: params.search,
     }),
     getCatalogConfig(),
@@ -29,10 +30,11 @@ export default async function ShopPage({
   return (
     <Suspense fallback={null}>
       <ShopClient
-        key={`${params.category ?? "all"}-${params.subcategory ?? ""}-${params.search ?? ""}`}
+        key={`${params.department ?? ""}-${params.category ?? "all"}-${params.subcategory ?? ""}-${params.search ?? ""}`}
         initialProducts={products}
         params={params}
         categories={catalog.categories}
+        departments={catalog.departments ?? []}
       />
     </Suspense>
   );

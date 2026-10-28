@@ -11,17 +11,21 @@ import { DatabaseSync } from "node:sqlite";
 // Compile the actual backend with the project's TypeScript dependency.
 const directory = mkdtempSync(join(tmpdir(), "clyfar-inventory-test-"));
 const require = createRequire(import.meta.url);
-for (const name of ["model", "database", "products", "orders"]) {
+for (const name of ["model", "database", "products", "orders", "schema", "taxonomy", "errors", "images"]) {
   const compiled = ts.transpileModule(readFileSync(resolve(`lib/inventory/${name}.ts`), "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
-  }).outputText.replaceAll('require("./model")', 'require("./model.cjs")')
-    .replaceAll('require("./database")', 'require("./database.cjs")')
+  }).outputText.replace(/require\("\.\/(\w+)"\)/g, 'require("./$1.cjs")')
     .replace('require("zod")', `require(${JSON.stringify(require.resolve("zod"))})`);
-  writeFileSync(join(directory, `${name}.cjs`), compiled);
+  const resolved = compiled.replace('require("sharp")', `require(${JSON.stringify(require.resolve("sharp"))})`);
+  writeFileSync(join(directory, `${name}.cjs`), resolved);
 }
 const fixtureRequire = createRequire(join(directory, "database.cjs"));
 const { openInventoryDatabase, readInventory, executeInventoryCommand } = fixtureRequire("./database.cjs");
 const { inventoryValue } = fixtureRequire("./model.cjs");
+const { generateVariantDrafts, effectivePrice } = fixtureRequire("./model.cjs");
+const { executeTaxonomyCommand, readTaxonomy, dynamicCatalog } = fixtureRequire("./taxonomy.cjs");
+const { compressItemImage, MAX_IMAGE_BYTES } = fixtureRequire("./images.cjs");
+const sharp = require("sharp");
 const { inventoryProducts } = fixtureRequire("./products.cjs");
 const { placeInventoryCheckout, readInventoryOrders, updateInventoryOrderStatus } = fixtureRequire("./orders.cjs");
 after(() => rmSync(directory, { recursive: true, force: true }));
@@ -58,7 +62,7 @@ test("case-insensitive duplicate SKU and color/size pairs are rejected", () => {
   const { db, item } = setup();
   try {
     assert.throws(() => executeInventoryCommand(db, { action: "create_item", ...item, sku: "oxf-01" }), /SKU already exists/);
-    assert.throws(() => executeInventoryCommand(db, { action: "add_variant", item_id: item.id, color: " red ", size: "42", quantity: 9 }), /color and size already exists/);
+    assert.throws(() => executeInventoryCommand(db, { action: "add_variant", item_id: item.id, color: " red ", size: "42", quantity: 9 }), /combination already exists/);
     assert.equal(readInventory(db).variants.length, 1);
   } finally { db.close(); }
 });
@@ -221,4 +225,136 @@ test("schema migration preserves existing item and variant records", () => {
     assert.equal(item.cost_price, 0);
     assert.equal(item.is_published, false);
   } finally { upgraded.close(); }
+});
+
+test("departments and custom category/subcategory records drive the public hierarchy", () => {
+  const db = openInventoryDatabase(":memory:");
+  try {
+    executeTaxonomyCommand(db, { action: "save_department", name: "Men" });
+    const department = readTaxonomy(db).departments[0];
+    executeTaxonomyCommand(db, { action: "save_category", name: "Casual", code: "CA", department_id: department.id });
+    const category = readTaxonomy(db).categories.find((entry) => entry.name === "Casual");
+    executeTaxonomyCommand(db, { action: "save_subcategory", name: "Lofer", category_id: category.id, code_prefix: "CAL" });
+    const subcategory = readTaxonomy(db).subcategories.find((entry) => entry.category_id === category.id);
+    executeInventoryCommand(db, { action: "create_item", name: "Moccasin", category: category.id, subcategory: subcategory.id, low_stock_threshold: 5, cost_price: 1200 });
+    const item = readInventory(db).items[0];
+    assert.equal(item.sku, "CAL00001"); assert.equal(item.sale_price, 1200);
+    assert.equal(item.department_slug, "men");
+    const publicCategory = dynamicCatalog(db).categories.find((entry) => entry.id === "casual");
+    assert.equal(publicCategory.departmentId, "men"); assert.ok(publicCategory.href.includes("department=men"));
+    executeTaxonomyCommand(db, { action: "save_department", id: department.id, name: "Menswear" });
+    assert.equal(readInventory(db).items[0].department_slug, "men");
+    assert.throws(() => executeTaxonomyCommand(db, { action: "delete", entity: "subcategory", id: subcategory.id }), /used by item/);
+    assert.throws(() => executeTaxonomyCommand(db, { action: "delete", entity: "department", id: department.id }), /Unassign/);
+  } finally { db.close(); }
+});
+test("automatic codes skip manual codes and failed creation does not consume a sequence", () => {
+  const db = openInventoryDatabase(":memory:");
+  try {
+    const taxonomy = readTaxonomy(db), category = taxonomy.categories.find((entry) => entry.name === "Formal Shoes"), subcategory = taxonomy.subcategories.find((entry) => entry.category_id === category.id && entry.name === "Oxford");
+    const fields = { action: "create_item", name: "Oxford", category: category.id, subcategory: subcategory.id, low_stock_threshold: 5 };
+    executeInventoryCommand(db, { ...fields, sku: `${subcategory.code_prefix}00001` });
+    const duplicate = [{ color: "Red", size: "42", model: "" }, { color: "red", size: "42", model: "" }];
+    assert.throws(() => executeInventoryCommand(db, { ...fields, variants: duplicate }), /combination/);
+    executeInventoryCommand(db, fields);
+    assert.deepEqual(readInventory(db).items.map((item) => item.sku).sort(), [`${subcategory.code_prefix}00001`, `${subcategory.code_prefix}00002`]);
+  } finally { db.close(); }
+});
+test("attribute generation creates every color/size/model combination with child barcodes and editable rates", () => {
+  const db = openInventoryDatabase(":memory:");
+  try {
+    const drafts = generateVariantDrafts("Moccasin", { Color: ["Red", "Green"], Size: ["38", "39", "40", "44"], Model: ["Classic", "Premium"] }, 1200, 2000);
+    assert.equal(drafts.length, 16); assert.equal(drafts[0].name, "Moccasin-Red-Classic-38");
+    drafts[1].sale_price = 2200;
+    executeInventoryCommand(db, { action: "create_item", name: "Moccasin", sku: "CAL00001", category: "Casual Shoes", subcategory: "Moccasin", cost_price: 1200, sale_price: 2000, low_stock_threshold: 5, attributes: ["Color", "Size", "Model"], variants: drafts });
+    const state = readInventory(db);
+    assert.equal(state.variants.length, 16); assert.equal(new Set(state.variants.map((variant) => variant.barcode)).size, 16);
+    assert.ok(state.variants.every((variant) => variant.barcode.startsWith("CAL00001-") && variant.quantity === 0));
+    assert.equal(state.variants.find((variant) => variant.name === drafts[1].name).sale_price, 2200);
+    assert.throws(() => generateVariantDrafts("Huge", { Color: Array.from({ length: 501 }, (_, i) => String(i)) }, 0, 0), /at most 500/);
+  } finally { db.close(); }
+});
+test("catalog selection and timed offers apply to child prices without exposing costs", () => {
+  const { db, item } = setup(":memory:", { sale_price: 2500 });
+  try {
+    executeInventoryCommand(db, { action: "set_listing", id: item.id, is_published: true, is_featured: true, offer_percent: 20, offer_start: null, offer_end: null });
+    let state = readInventory(db), product = inventoryProducts(state.items, state.variants)[0];
+    assert.equal(product.price, 2000); assert.equal(product.original_price, 2500); assert.equal(product.variants[0].price, 2000); assert.equal(product.is_featured, true);
+    const command = checkout(item); command.items[0].expected_price = 2000;
+    assert.equal(placeInventoryCheckout(db, command, 8000)[0].total_price, 4080);
+    executeInventoryCommand(db, { action: "set_listing", id: item.id, is_published: false, is_featured: true, offer_percent: 0, offer_start: null, offer_end: null });
+    state = readInventory(db); assert.equal(inventoryProducts(state.items, state.variants).length, 0);
+    assert.equal(effectivePrice(100, { offer_percent: 20, offer_start: "2030-01-01T00:00:00Z", offer_end: null }, new Date("2026-01-01")), 100);
+    assert.throws(() => executeInventoryCommand(db, { action: "set_listing", id: item.id, is_published: false, is_featured: false, offer_percent: 20, offer_start: "2030-02-01T00:00:00Z", offer_end: "2030-01-01T00:00:00Z" }), /after/);
+  } finally { db.close(); }
+});
+test("negative stock requires item permission and cancellation can restore a negative balance", () => {
+  const { db, item, variant } = setup(":memory:", { cost_price: 1200, sale_price: 2000, is_published: true, allow_negative_stock: true });
+  try {
+    const command = checkout(item); command.items[0].quantity = 8;
+    const order = placeInventoryCheckout(db, command, 8000)[0]; assert.equal(readInventory(db).variants[0].quantity, -2);
+    assert.throws(() => executeInventoryCommand(db, { action: "update_item", ...item, allow_negative_stock: false }), /reconcile negative/);
+    executeInventoryCommand(db, stock(variant, { quantity: 2, expected_quantity: -2 }));
+    assert.equal(readInventory(db).variants[0].quantity, -4);
+    updateInventoryOrderStatus(db, order.id, "cancelled"); assert.equal(readInventory(db).variants[0].quantity, 4);
+    executeInventoryCommand(db, { action: "update_item", ...item, allow_negative_stock: false });
+    assert.throws(() => placeInventoryCheckout(db, { ...command, request_id: randomUUID() }, 8000), /Only 4 units/);
+  } finally { db.close(); }
+});
+test("model selections are distinct stock identities and checkout uses the selected child's price", () => {
+  const db = openInventoryDatabase(":memory:");
+  try {
+    const drafts = generateVariantDrafts("Oxford", { Color: ["Black"], Size: ["42"], Model: ["Classic", "Premium"] }, 1000, 2000);
+    drafts[1].sale_price = 3000;
+    executeInventoryCommand(db, { action: "create_item", name: "Oxford", sku: "MOD-001", category: "Formal Shoes", subcategory: "Oxford", low_stock_threshold: 5, cost_price: 1000, sale_price: 2000, is_published: true, attributes: ["Color", "Size", "Model"], variants: drafts });
+    let state = readInventory(db); const item = state.items[0], premium = state.variants.find((variant) => variant.model === "Premium"), classic = state.variants.find((variant) => variant.model === "Classic");
+    executeInventoryCommand(db, stock(premium, { kind: "receive", quantity: 3, expected_quantity: 0 }));
+    const command = checkout(item); command.items = [{ product_id: item.id, variant_id: premium.id, color: "Black", size: "42", model: "Premium", quantity: 2, expected_price: 3000 }];
+    const order = placeInventoryCheckout(db, command, 8000)[0];
+    assert.equal(order.total_price, 6080); assert.equal(order.model, "Premium"); assert.equal(order.barcode, premium.barcode);
+    state = readInventory(db); assert.equal(state.variants.find((variant) => variant.id === classic.id).quantity, 0); assert.equal(state.variants.find((variant) => variant.id === premium.id).quantity, 1);
+  } finally { db.close(); }
+});
+test("uploaded images are compressed, resized and restricted to 1 MB and supported formats", async () => {
+  const original = await sharp({ create: { width: 2000, height: 1800, channels: 3, background: "red" } }).png().toBuffer();
+  const compressed = await compressItemImage(original), metadata = await sharp(compressed).metadata();
+  assert.equal(metadata.format, "webp"); assert.equal(metadata.width, 1600); assert.ok(compressed.length <= MAX_IMAGE_BYTES);
+  await assert.rejects(() => compressItemImage(new Uint8Array(MAX_IMAGE_BYTES + 1)), /1 MB/);
+  await assert.rejects(() => compressItemImage(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"></svg>')), /still JPG/);
+  await assert.rejects(() => compressItemImage(Buffer.from("not an image")), /valid supported/);
+  const avif = await sharp({ create: { width: 20, height: 20, channels: 3, background: "red" } }).avif().toBuffer();
+  assert.equal((await sharp(await compressItemImage(avif)).metadata()).format, "webp");
+});
+
+test("migration retains existing stock, order and movement foreign keys", () => {
+  const filename = join(directory, "legacy-stock.sqlite"), legacy = new DatabaseSync(filename);
+  legacy.exec(`PRAGMA foreign_keys=ON;
+    CREATE TABLE inventory_items(id TEXT PRIMARY KEY,name TEXT NOT NULL,sku TEXT NOT NULL UNIQUE COLLATE NOCASE,category TEXT NOT NULL,subcategory TEXT NOT NULL,low_stock_threshold INTEGER NOT NULL,created_at TEXT NOT NULL,cost_cents INTEGER NOT NULL,sale_price_cents INTEGER NOT NULL,description TEXT NOT NULL,images_json TEXT NOT NULL,is_published INTEGER NOT NULL);
+    CREATE TABLE inventory_variants(id TEXT PRIMARY KEY,item_id TEXT NOT NULL REFERENCES inventory_items(id),color TEXT NOT NULL COLLATE NOCASE,size TEXT NOT NULL COLLATE NOCASE,quantity INTEGER NOT NULL CHECK(quantity>=0),UNIQUE(item_id,color,size));
+    CREATE TABLE inventory_movements(id TEXT PRIMARY KEY,variant_id TEXT NOT NULL REFERENCES inventory_variants(id),kind TEXT NOT NULL,delta INTEGER NOT NULL,before_quantity INTEGER NOT NULL,after_quantity INTEGER NOT NULL,reason TEXT NOT NULL,created_at TEXT NOT NULL,request_id TEXT UNIQUE);
+    CREATE TABLE inventory_checkouts(request_id TEXT PRIMARY KEY,request_json TEXT NOT NULL,created_at TEXT NOT NULL);
+    CREATE TABLE inventory_orders(id TEXT PRIMARY KEY,checkout_id TEXT NOT NULL REFERENCES inventory_checkouts(request_id),variant_id TEXT NOT NULL REFERENCES inventory_variants(id),customer_name TEXT NOT NULL,phone TEXT NOT NULL,address TEXT NOT NULL,city TEXT NOT NULL,product_id TEXT NOT NULL,product_name TEXT NOT NULL,size TEXT NOT NULL,color TEXT NOT NULL,quantity INTEGER NOT NULL,total_price REAL NOT NULL,unit_cost_cents INTEGER NOT NULL,unit_price_cents INTEGER NOT NULL,status TEXT NOT NULL,notes TEXT NOT NULL,created_at TEXT NOT NULL);
+  `);
+  const itemId = randomUUID(), variantId = randomUUID(), orderId = randomUUID(), checkoutId = randomUUID(), now = new Date().toISOString();
+  legacy.prepare("INSERT INTO inventory_items VALUES(?,?,?,?,?,?,?,?,?,?,?,?)").run(itemId, "Existing Oxford", "OLD-001", "Formal Shoes", "Oxford", 5, now, 100000, 200000, "", "[]", 1);
+  legacy.prepare("INSERT INTO inventory_variants VALUES(?,?,?,?,?)").run(variantId, itemId, "Black", "42", 9);
+  legacy.prepare("INSERT INTO inventory_movements VALUES(?,?,?,?,?,?,?,?,?)").run(randomUUID(), variantId, "opening", 10, 0, 10, "Opening stock", now, null);
+  legacy.prepare("INSERT INTO inventory_checkouts VALUES(?,?,?)").run(checkoutId, "{}", now);
+  legacy.prepare("INSERT INTO inventory_orders VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(orderId, checkoutId, variantId, "Test", "01700000000", "Address", "Dhaka", itemId, "Existing Oxford", "42", "Black", 1, 2080, 100000, 200000, "pending", "", now);
+  legacy.close(); const db = openInventoryDatabase(filename);
+  try {
+    const state = readInventory(db); assert.equal(state.items[0].id, itemId); assert.equal(state.variants[0].id, variantId); assert.equal(state.variants[0].quantity, 9); assert.equal(state.variants[0].barcode, "OLD-001-001");
+    assert.equal(readInventoryOrders(db)[0].id, orderId); assert.equal(state.movements[0].variant_id, variantId); assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
+    updateInventoryOrderStatus(db, orderId, "cancelled"); assert.equal(readInventory(db).variants[0].quantity, 10);
+  } finally { db.close(); }
+});
+
+test("profile edits cannot hide dimensions needed to select saved variants", () => {
+  const { db, item } = setup(":memory:", { sale_price: 2500 });
+  try {
+    executeInventoryCommand(db, { action: "update_item", ...item, attributes: [], is_published: true });
+    const state = readInventory(db);
+    assert.deepEqual(state.items[0].attributes, ["Color", "Size"]);
+    assert.deepEqual(inventoryProducts(state.items, state.variants)[0].attributes, ["Color", "Size"]);
+  } finally { db.close(); }
 });

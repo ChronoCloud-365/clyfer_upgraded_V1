@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Uploaded images use the WebP thumbnail service. */
 
 import { useSyncExternalStore } from "react";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { itemImage } from "@/lib/item-image";
 
 export function CartDrawer() {
   const { items, isOpen, setCartOpen, updateQuantity, removeItem, totalPrice, totalItems } = useCartStore();
@@ -53,10 +55,10 @@ export function CartDrawer() {
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <div className="space-y-6">
                 {items.map((item) => (
-                  <div key={`${item.product.id}-${item.size}-${item.color.name}`} className="flex gap-4 group">
+                  <div key={item.variant_id || `${item.product.id}-${item.size}-${item.color.name}-${item.model || ""}`} className="flex gap-4 group">
                     <div className="size-24 rounded-2xl overflow-hidden bg-muted border border-border shrink-0">
                       <img
-                        src={item.product.images?.[0] ?? ""}
+                        src={itemImage(item.product.images?.[0], 160)}
                         alt={item.product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
@@ -65,27 +67,27 @@ export function CartDrawer() {
                       <div className="flex justify-between gap-2 mb-1">
                         <h4 className="text-sm font-bold text-foreground truncate">{item.product.name}</h4>
                         <button
-                          onClick={() => removeItem(item.product.id, item.size, item.color.name)}
+                          onClick={() => removeItem(item.product.id, item.size, item.color.name, item.model, item.variant_id)}
                           className="text-muted-foreground hover:text-red-500 transition-colors"
                         >
                           <Trash2 className="size-4" />
                         </button>
                       </div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">
-                        {item.size} · {item.color.name}
+                        {item.size} · {item.color.name}{item.model ? ` · ${item.model}` : ""}
                       </p>
                       
                       <div className="mt-auto flex items-center justify-between">
                         <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 border border-border">
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity - 1, item.model, item.variant_id)}
                             className="size-7 flex items-center justify-center hover:bg-background rounded-md transition-all"
                           >
                             <Minus className="size-3" />
                           </button>
                           <span className="w-8 text-center text-xs font-bold">{item.quantity}</span>
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.product.id, item.size, item.color.name, item.quantity + 1, item.model, item.variant_id)}
                             className="size-7 flex items-center justify-center hover:bg-background rounded-md transition-all"
                           >
                             <Plus className="size-3" />

@@ -7,6 +7,7 @@ import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/store/cart";
 import type { Product } from "@/types";
+import { itemImage } from "@/lib/item-image";
 
 interface ProductCardProps {
   product: Product;
@@ -55,7 +56,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
           {/* Image */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={product.images?.[0] ?? ""}
+            src={itemImage(product.images?.[0], 480)}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           />
@@ -108,10 +109,11 @@ export function ProductCard({ product, index }: ProductCardProps) {
           <h3 className="text-base font-bold text-foreground group-hover:text-brand transition-colors leading-tight truncate">
             {product.name}
           </h3>
-          {product.inventory_managed && <p className="text-xs text-muted-foreground">{product.in_stock ? `${product.variants?.reduce((sum, variant) => sum + variant.quantity, 0)} units available` : "Out of stock"}</p>}
+          {product.inventory_managed && <p className="text-xs text-muted-foreground">{product.allow_negative_stock ? "Available to order" : product.in_stock ? `${product.variants?.reduce((sum, variant) => sum + Math.max(0, variant.quantity), 0)} units available` : "Out of stock"}</p>}
           
           <div className="flex items-center gap-3 pt-1">
             <span className="text-lg font-bold text-foreground tabular-nums">
+              {product.inventory_managed && new Set(product.variants?.map((variant) => variant.price)).size > 1 && <span className="mr-1 text-xs font-normal">From</span>}
               ৳{product.price.toLocaleString()}
             </span>
             {product.original_price && (

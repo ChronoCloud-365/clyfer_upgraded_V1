@@ -10,16 +10,19 @@ import { useLiveProducts } from "@/lib/use-live-products";
 interface Props {
   products: Product[];
   categories?: CatalogCategory[];
+  departments?: { id: string; name: string; slug: string }[];
 }
 
-export function AllProductsSection({ products: initialProducts, categories = [] }: Props) {
+export function AllProductsSection({ products: initialProducts, categories = [], departments = [] }: Props) {
   const products = useLiveProducts(initialProducts);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [departmentCategory, setDepartmentCategory] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "price_asc" | "price_desc">("newest");
   const visibleCategories = categories.length
     ? [
         { label: "All", value: "All" },
-        ...categories.map((category) => ({ label: category.label, value: category.id })),
+        ...departments.filter((department) => categories.some((category) => category.departmentId === department.slug)).map((department) => ({ label: department.name, value: `department:${department.slug}` })),
+        ...categories.filter((category) => !category.departmentId).map((category) => ({ label: category.label, value: category.id })),
       ]
     : [
         { label: "All", value: "All" },
@@ -35,7 +38,7 @@ export function AllProductsSection({ products: initialProducts, categories = [] 
 
     // Filter
     if (activeCategory !== "All") {
-      result = result.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase());
+      result = activeCategory.startsWith("department:") ? result.filter((product) => product.department === activeCategory.slice(11) && (!departmentCategory || product.category === departmentCategory)) : result.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase());
     }
 
     // Sort
@@ -48,7 +51,7 @@ export function AllProductsSection({ products: initialProducts, categories = [] 
     });
 
     return result;
-  }, [products, activeCategory, sortBy]);
+  }, [products, activeCategory, departmentCategory, sortBy]);
 
   if (!products.length) return null;
 
@@ -71,7 +74,7 @@ export function AllProductsSection({ products: initialProducts, categories = [] 
             {visibleCategories.map((cat) => (
               <button
                 key={cat.value}
-                onClick={() => setActiveCategory(cat.value)}
+                onClick={() => { setActiveCategory(cat.value); setDepartmentCategory(""); }}
                 className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wide transition-all duration-300 ${
                   activeCategory === cat.value
                     ? "bg-foreground text-background shadow-lg scale-105"
@@ -82,6 +85,8 @@ export function AllProductsSection({ products: initialProducts, categories = [] 
               </button>
             ))}
           </div>
+
+          {activeCategory.startsWith("department:") && <div className="flex flex-wrap gap-2"><button className="rounded-lg border border-border px-3 py-2 text-xs" onClick={() => setDepartmentCategory("")}>All categories</button>{categories.filter((category) => category.departmentId === activeCategory.slice(11)).map((category) => <button key={category.id} className={`rounded-lg border px-3 py-2 text-xs ${departmentCategory === category.id ? "border-brand bg-brand/10" : "border-border"}`} onClick={() => setDepartmentCategory(category.id)}>{category.label}</button>)}</div>}
 
           {/* Sort */}
           <div className="flex items-center gap-3 w-full sm:w-auto">
